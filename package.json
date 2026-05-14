@@ -1,0 +1,18 @@
+{
+  "name": "roadsos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-Powered Emergency Response System for Road Safety",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "build": "cd frontend && npm run build",
+    "docker:up": "docker compose -f infra/docker-compose.yml up -d",
+    "docker:down": "docker compose -f infra/docker-compose.yml down",
+    "seed": "cd backend && python -m app.seed.run"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

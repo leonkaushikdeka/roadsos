@@ -1,0 +1,373 @@
+# Kubernetes manifests for RoadSoS
+# Deploy with: kubectl apply -f k8s/
+
+# ─── Namespace ───────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: roadsos
+  labels:
+    app: roadsos
+    team: coers
+---
+
+# ─── Secrets ─────────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: roadsos-secrets
+  namespace: roadsos
+type: Opaque
+stringData:
+  postgres-password: "roadsos"
+  redis-password: ""
+  jwt-secret: "CHANGE-ME-IN-PRODUCTION-USE-A-STRONG-RANDOM-KEY"
+  twilio-account-sid: ""
+  twilio-auth-token: ""
+  whatsapp-api-token: ""
+---
+
+# ─── ConfigMap ───────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: roadsos-config
+  namespace: roadsos
+data:
+  DATABASE_URL: "postgresql+asyncpg://roadsos:roadsos@postgres:5432/roadsos"
+  DATABASE_URL_SYNC: "postgresql://roadsos:roadsos@postgres:5432/roadsos"
+  REDIS_URL: "redis://redis:6379/0"
+  CELERY_BROKER_URL: "redis://redis:6379/1"
+  USE_MOCK_LLM: "true"
+  USE_MOCK_DISPATCH: "false"
+  LOG_LEVEL: "INFO"
+---
+
+# ─── Postgres ────────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: roadsos
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+        namespace: roadsos
+    spec:
+      containers:
+        - name: postgres
+          image: postgis/postgis:16-3.4
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "roadsos"
+            - name: POSTGRES_USER
+              value: "roadsos"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: roadsos-secrets
+                  key: postgres-password
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "roadsos"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "roadsos"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: "10Gi"
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: roadsos
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+  clusterIP: None
+---
+
+# ─── Redis ───────────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: roadsos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        namespace: roadsos
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: roadsos
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+---
+
+# ─── Backend API ─────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: roadsos
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+        namespace: roadsos
+    spec:
+      initContainers:
+        - name: seed-database
+          image: python:3.12-slim
+          command:
+            - sh
+            - -c
+            - |
+              pip install sqlalchemy[asyncpg] geoalchemy2 psycopg2-binary
+              -q 2>/dev/null
+              python - <<'PYEOF'
+import asyncio, os, sys
+sys.path.insert(0, "/app")
+os.chdir("/app")
+# Verify Postgres is ready
+import time
+for i in range(30):
+    try:
+        import asyncpg
+        asyncio.run(asyncpg.connect(os.environ["DATABASE_URL"]).close())
+        break
+    except:
+        time.sleep(2)
+# Run seed
+exec(open("/app/seed_run.py").read())
+PYEOF
+          envFrom:
+            - configMapRef:
+                name: roadsos-config
+            - secretRef:
+                name: roadsos-secrets
+          volumeMounts:
+            - name: backend-code
+              mountPath: /app
+      containers:
+        - name: backend
+          image: roadsos/backend:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: roadsos-config
+            - secretRef:
+                name: roadsos-secrets
+          volumeMounts:
+            - name: backend-code
+              mountPath: /app
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "500m"
+            limits:
+              memory: "512Mi"
+              cpu: "1"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: backend-code
+          configMap:
+            name: backend-code
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: roadsos
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8000
+  type: ClusterIP
+---
+
+# ─── Frontend PWA ────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: roadsos
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+        namespace: roadsos
+    spec:
+      containers:
+        - name: frontend
+          image: roadsos/frontend:latest
+          ports:
+            - containerPort: 3000
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: roadsos
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      targetPort: 3000
+  type: ClusterIP
+---
+
+# ─── Ingress (NGINX Ingress Controller) ──────────────────────────────────────
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: roadsos-ingress
+  namespace: roadsos
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/rate-limit: "30"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /v1/incident/initiate
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          - path: /v1
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          - path: /v1/webhook
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

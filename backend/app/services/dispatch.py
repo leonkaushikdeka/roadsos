@@ -1,0 +1,200 @@
+import math
+import httpx
+import logging
+from datetime import datetime
+from typing import Optional
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+SERVICE_PRIORITY = {
+    "hospital": 1,
+    "ambulance": 2,
+    "police": 3,
+    "fire": 4,
+    "blood_bank": 5,
+}
+
+
+async def _get_osrm_eta(start_lng: float, start_lat: float, end_lng: float, end_lat: float) -> Optional[float]:
+    """
+    Query OSRM for real driving ETA in minutes.
+    Falls back to None if OSRM is unreachable.
+    """
+    if not settings.osm_routing_url:
+        return None
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            url = (
+                f"{settings.osm_routing_url}/route/v1/driving/"
+                f"{start_lng},{start_lat};{end_lng},{end_lat}"
+                f"?overview=false"
+            )
+            resp = await client.get(url)
+            if resp.status_code == 200:
+                data = resp.json()
+                routes = data.get("routes", [])
+                if routes:
+                    duration_seconds = routes[0].get("duration", 0)
+                    return duration_seconds / 60.0
+    except Exception as e:
+        logger.debug(f"OSRM routing unavailable: {e}")
+
+    return None
+
+
+def _linear_eta(distance_km: float, service_type: str) -> float:
+    """Fallback linear ETA estimate."""
+    speed_map = {"hospital": 0.8, "ambulance": 0.6, "police": 0.5, "fire": 0.5, "blood_bank": 0.6}
+    speed = speed_map.get(service_type, 0.5)
+    return max(1, round(distance_km / speed))
+
+
+async def find_nearest_services(
+    db: AsyncSession,
+    lat: float,
+    lng: float,
+    service_type: str,
+    radius_km: float = 25,
+    min_trauma_grade: Optional[int] = None,
+    limit: int = 5,
+    use_osrm: bool = True,
+) -> list[dict]:
+    trauma_filter = ""
+    if min_trauma_grade and service_type == "hospital":
+        trauma_filter = f"AND trauma_grade <= {min_trauma_grade}"
+
+    sql = text(f"""
+        SELECT
+            id, name, service_type, trauma_grade,
+            ST_Distance(location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) / 1000 AS distance_km,
+            phone, address, has_icu, has_ventilator, capacity,
+            ST_Y(location::geometry) as svc_lat,
+            ST_X(location::geometry) as svc_lng
+        FROM emergency_services
+        WHERE service_type = :service_type
+        {trauma_filter}
+        AND ST_DWithin(location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius)
+        ORDER BY
+            CASE WHEN service_type = 'hospital' THEN trauma_grade ELSE 0 END ASC,
+            distance_km ASC
+        LIMIT :limit
+    """)
+
+    result = await db.execute(sql, {
+        "lat": lat, "lng": lng,
+        "service_type": service_type,
+        "radius": radius_km * 1000,
+        "limit": limit,
+    })
+
+    services = []
+    for row in result.fetchall():
+        distance_km = float(row[4])
+
+        # Try real OSRM routing first, fall back to linear estimate
+        eta_min = None
+        if use_osrm:
+            eta_min = await _get_osrm_eta(lng, lat, float(row[7]), float(row[6]))
+        if eta_min is None:
+            eta_min = _linear_eta(distance_km, service_type)
+
+        services.append({
+            "id": row[0],
+            "name": row[1],
+            "service_type": row[2],
+            "trauma_grade": row[3],
+            "distance_km": round(distance_km, 2),
+            "phone": row[5],
+            "address": row[6],
+            "has_icu": row[7],
+            "has_ventilator": row[8],
+            "capacity": row[9] if row[9] else {},
+            "eta_min": round(eta_min, 1),
+        })
+
+    return services
+
+
+async def dispatch_ambulance(
+    db: AsyncSession,
+    incident_id: str,
+    service_id: str,
+    lat: float,
+    lng: float,
+    use_osrm: bool = True,
+) -> dict:
+    """Dispatch ambulance with real or estimated ETA."""
+    # Get ambulance location for routing
+    amb_result = await db.execute(
+        text("SELECT ST_Y(location::geometry), ST_X(location::geometry) FROM emergency_services WHERE id = :id"),
+        {"id": service_id},
+    )
+    amb_row = amb_result.fetchone()
+
+    eta_min = None
+    if use_osrm and amb_row and amb_row[0] is not None:
+        eta_min = await _get_osrm_eta(amb_row[1], amb_row[0], lng, lat)
+
+    if eta_min is None:
+        # Fallback: distance-based estimate from the incident query
+        eta_sql = text("""
+            SELECT ST_Distance(
+                (SELECT location FROM emergency_services WHERE id = :sid),
+                ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+            ) / 1000 / 0.6
+        """)
+        eta_result = await db.execute(eta_sql, {"sid": service_id, "lng": lng, "lat": lat})
+        eta_row = eta_result.fetchone()
+        if eta_row and eta_row[0]:
+            eta_min = max(1, round(float(eta_row[0])))
+
+    if eta_min is None:
+        eta_min = 10  # Ultimate fallback
+
+    dispatch_info = {
+        "type": "ambulance",
+        "service_id": service_id,
+        "dispatched_at": datetime.utcnow().isoformat(),
+    }
+
+    sql = text("""
+        UPDATE incidents
+        SET status = 'ambulance_dispatched',
+            dispatched_services = COALESCE(dispatched_services, '[]'::jsonb) || :dispatch_info::jsonb,
+            ambulance_eta_min = :eta
+        WHERE id = :incident_id
+        RETURNING id, ambulance_eta_min
+    """)
+
+    result = await db.execute(sql, {
+        "incident_id": incident_id,
+        "dispatch_info": str(dispatch_info).replace("'", '"'),
+        "eta": eta_min,
+    })
+    await db.commit()
+    row = result.fetchone()
+    return {"incident_id": row[0], "eta_min": row[1]} if row else {}
+
+
+async def rank_hospitals(services: list[dict]) -> list[dict]:
+    def score(svc):
+        s = 0
+        if svc.get("trauma_grade"):
+            s += (5 - svc["trauma_grade"]) * 10
+        if svc.get("has_icu"):
+            s += 15
+        if svc.get("has_ventilator"):
+            s += 10
+        distance_km = svc.get("distance_km", 100)
+        s += max(0, 20 - distance_km)
+        # Prefer shorter ETA when available
+        eta = svc.get("eta_min", 100)
+        s += max(0, 10 - eta)
+        return s
+
+    return sorted(services, key=score, reverse=True)
