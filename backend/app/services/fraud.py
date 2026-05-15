@@ -134,10 +134,8 @@ class FraudEngine:
         )
 
         # Apply decay to threat score
-        if tracker.last_incident_at:
-            elapsed_hours = (
-                now - tracker.last_incident_at.replace(tzinfo=timezone.utc)
-            ).total_seconds() / 3600
+        if tracker.last_incident_at and tracker.threat_score is not None:
+            elapsed_hours = (now - tracker.last_incident_at).total_seconds() / 3600
             tracker.threat_score = max(
                 0, tracker.threat_score - (elapsed_hours * THREAT_SCORE_DECAY_PER_HOUR)
             )
@@ -213,7 +211,7 @@ class FraudEngine:
             )
 
         # Save tracker, create alert if needed, save fingerprint
-        tracker.incident_count += 1
+        tracker.incident_count = (tracker.incident_count or 0) + 1
         tracker.last_incident_at = now
         tracker.updated_at = now
         await self.db.flush()
