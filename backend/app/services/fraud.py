@@ -193,6 +193,8 @@ class FraudEngine:
         elif result.risk_level == "critical":
             added_score = 50.0
 
+        if tracker.threat_score is None:
+            tracker.threat_score = 0.0
         if added_score > 0:
             tracker.threat_score = min(100.0, tracker.threat_score + added_score)
 
