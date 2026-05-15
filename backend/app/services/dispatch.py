@@ -96,10 +96,13 @@ async def find_nearest_services(
     for row in result.fetchall():
         distance_km = float(row[4])
 
+        svc_lat = float(row[10]) if row[10] is not None else None
+        svc_lng = float(row[11]) if row[11] is not None else None
+
         # Try real OSRM routing first, fall back to linear estimate
         eta_min = None
-        if use_osrm:
-            eta_min = await _get_osrm_eta(lng, lat, float(row[7]), float(row[6]))
+        if use_osrm and svc_lat is not None and svc_lng is not None:
+            eta_min = await _get_osrm_eta(lng, lat, svc_lng, svc_lat)
         if eta_min is None:
             eta_min = _linear_eta(distance_km, service_type)
 

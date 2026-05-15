@@ -38,7 +38,7 @@ class TriageResponse(BaseModel):
     severity: Optional[str] = None
     severity_confidence: Optional[float] = None
     triage_complete: bool = False
-    dispatch_options: Optional[list[dict]] = None
+    dispatch_options: Optional[dict] = None
     session_complete: bool = False
 
 

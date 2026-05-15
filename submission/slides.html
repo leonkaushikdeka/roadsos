@@ -1,189 +1,308 @@
+<!--
+  RoadSoS — 7-Slide Deck for IIT Madras Road Safety Hackathon 2026
+  Open in Chrome → Print → Save as PDF → submission/slides.pdf
+  Print settings: Landscape, A4/Letter, No margins, Background graphics ON
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RoadSoS — IIT Madras Road Safety Hackathon 2026</title>
 <style>
+  @page { size: landscape; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
-  .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; opacity: 0; transition: opacity 0.5s; pointer-events: none; }
-  .slide.active { opacity: 1; pointer-events: auto; }
-  h1 { font-size: 3rem; margin-bottom: 1rem; color: #f8fafc; }
-  h2 { font-size: 2rem; margin-bottom: 1rem; color: #fbbf24; }
-  p { font-size: 1.2rem; line-height: 1.6; max-width: 800px; text-align: center; color: #cbd5e1; }
-  .subtitle { font-size: 1.4rem; color: #94a3b8; margin-bottom: 2rem; }
-  .highlight { color: #dc2626; font-weight: 700; }
-  .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; max-width: 900px; }
-  .feature-card { background: #1e293b; border-radius: 12px; padding: 1.5rem; border-left: 4px solid #dc2626; }
-  .feature-card h3 { color: #f8fafc; margin-bottom: 0.5rem; }
-  .feature-card p { font-size: 1rem; }
-  .demo-area { background: #1e293b; border-radius: 16px; padding: 2rem; max-width: 600px; width: 100%; margin-top: 1.5rem; }
-  .demo-area code { font-family: 'Courier New', monospace; color: #34d399; font-size: 0.95rem; }
-  .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: center; gap: 1rem; padding: 1rem; background: rgba(15, 23, 42, 0.95); z-index: 100; }
-  .nav-btn { padding: 0.5rem 1.5rem; border: 1px solid #334155; border-radius: 8px; background: #1e293b; color: #e2e8f0; cursor: pointer; font-size: 1rem; }
-  .nav-btn:hover { background: #334155; }
-  .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .counter { color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem; }
-  .logo-icon { width: 80px; height: 80px; background: #dc2626; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; font-size: 2.5rem; }
-  ul { list-style: none; text-align: left; max-width: 600px; }
-  li { padding: 0.3rem 0; font-size: 1.1rem; }
-  li::before { content: "✓ "; color: #34d399; }
-  .tech-list { display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; margin-top: 1.5rem; }
-  .tech-tag { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 0.4rem 0.8rem; font-size: 0.9rem; color: #94a3b8; }
-  .quote { font-style: italic; font-size: 1.4rem; color: #fbbf24; max-width: 700px; text-align: center; }
-  .author { margin-top: 0.5rem; color: #64748b; }
-  @media (max-width: 600px) {
-    h1 { font-size: 2rem; } h2 { font-size: 1.5rem; } p { font-size: 1rem; }
-    .feature-grid { grid-template-columns: 1fr; }
+  html { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  body { background: #0a0a0a; color: #e2e8f0; }
+
+  .slide {
+    width: 100vw; height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 3rem 5rem;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .slide:last-child { page-break-after: avoid; }
+
+  /* Slide backgrounds */
+  .slide-1 { background: radial-gradient(ellipse at 30% 60%, #7f1d1d 0%, #0a0a0a 70%); }
+  .slide-2 { background: linear-gradient(135deg, #0a0a0a 60%, #450a0a 100%); }
+  .slide-3 { background: radial-gradient(ellipse at 70% 40%, #1a1a2e 0%, #0a0a0a 80%); }
+  .slide-4 { background: #0a0a0a; }
+  .slide-5 { background: linear-gradient(180deg, #0a0a0a 0%, #0f172a 100%); }
+  .slide-6 { background: radial-gradient(ellipse at 50% 80%, #052e16 0%, #0a0a0a 70%); }
+  .slide-7 { background: radial-gradient(ellipse at 50% 50%, #7f1d1d 0%, #0a0a0a 60%); }
+
+  h1 { font-size: 4rem; font-weight: 900; letter-spacing: -0.02em; color: #f8fafc; }
+  h2 { font-size: 2.4rem; font-weight: 800; color: #f8fafc; margin-bottom: 0.5rem; }
+  .subtitle { font-size: 1.3rem; color: #94a3b8; margin-bottom: 1.5rem; }
+  .accent { color: #e63946; }
+  .green { color: #16a34a; }
+  .orange { color: #f59e0b; }
+
+  .stat-giant { font-size: 5rem; font-weight: 900; color: #e63946; line-height: 1; }
+  .stat-sub { font-size: 1.1rem; color: #94a3b8; margin-top: 0.3rem; }
+
+  .card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 1.2rem;
+  }
+  .card-accent { border-left: 4px solid #e63946; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; width: 100%; max-width: 900px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; width: 100%; max-width: 900px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; width: 100%; max-width: 900px; }
+
+  .pill {
+    display: inline-block; padding: 0.3rem 0.8rem;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px; font-size: 0.8rem; color: #94a3b8;
+  }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-top: 1rem; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th { text-align: left; color: #64748b; padding: 0.4rem 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  td { padding: 0.4rem 0.8rem; color: #cbd5e1; }
+  td.bad { color: #e63946; font-weight: 700; }
+
+  .timeline-item {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.6rem 1rem; border-radius: 8px;
+    background: rgba(255,255,255,0.04); margin-bottom: 0.5rem;
+  }
+  .timeline-time { font-family: 'Courier New', monospace; color: #f59e0b; font-size: 0.85rem; min-width: 3.5rem; }
+  .timeline-text { font-size: 0.9rem; color: #cbd5e1; }
+  .timeline-icon { font-size: 1.3rem; min-width: 2rem; text-align: center; }
+
+  .arch-layer {
+    padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.85rem;
+    margin-bottom: 0.3rem; text-align: center;
+  }
+
+  .roadmap-row {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.5rem 1rem; border-radius: 8px;
+    background: rgba(255,255,255,0.04); margin-bottom: 0.4rem;
+  }
+  .roadmap-phase { font-weight: 700; color: #f59e0b; min-width: 5rem; font-size: 0.85rem; }
+  .roadmap-date { font-family: monospace; color: #64748b; min-width: 5rem; font-size: 0.8rem; }
+  .roadmap-desc { font-size: 0.85rem; color: #cbd5e1; }
+
+  .qr-placeholder {
+    width: 120px; height: 120px; border: 2px dashed rgba(255,255,255,0.2);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; color: #64748b; text-align: center;
+  }
+
+  .slide-num {
+    position: absolute; bottom: 1.5rem; right: 2rem;
+    font-size: 0.75rem; color: #475569;
+  }
+
+  .callout {
+    background: rgba(230, 57, 70, 0.1); border: 1px solid rgba(230, 57, 70, 0.3);
+    border-radius: 8px; padding: 0.8rem 1.2rem; font-size: 0.85rem; color: #fca5a5;
+    max-width: 700px; text-align: center;
+  }
+
+  @media print {
+    .slide { width: 100%; height: 100vh; page-break-after: always; }
+    .slide:last-child { page-break-after: avoid; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+
+  /* Interactive nav for screen viewing */
+  @media screen {
+    .slide { min-height: 100vh; }
   }
 </style>
 </head>
 <body>
 
-<div class="slide active" data-slide="0">
-  <div class="counter">Slide 1 / 7</div>
-  <div class="logo-icon">🚑</div>
-  <h1>RoadSoS</h1>
-  <p class="subtitle">AI-Powered Emergency Response System</p>
-  <p>Intelligent triage, real-time dispatch, and multilingual support —<br>built for Tamil Nadu's road safety challenges</p>
-  <p style="margin-top:2rem; font-size:0.9rem; color:#64748b;">IIT Madras Road Safety Hackathon 2026</p>
+<!-- SLIDE 1: Welcome -->
+<div class="slide slide-1">
+  <div style="width:80px;height:80px;background:#e63946;border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;font-size:2rem;font-weight:900;color:white;">SOS</div>
+  <h1>Road<span class="accent">SoS</span></h1>
+  <p class="subtitle">The AI Companion that turns every bystander into a first responder</p>
+  <p style="font-size:0.95rem;color:#64748b;max-width:600px;text-align:center;line-height:1.6;">
+    Saving lives in the Golden Hour through AI-driven triage,<br>
+    location-aware emergency dispatch, and voice-first accessibility
+  </p>
+  <div style="margin-top:2rem;display:flex;gap:1.5rem;font-size:0.8rem;color:#475569;">
+    <span>CoERS, IIT Madras</span>
+    <span>|</span>
+    <span>Road Safety Hackathon 2026</span>
+  </div>
+  <span class="slide-num">1 / 7</span>
 </div>
 
-<div class="slide" data-slide="1">
-  <div class="counter">Slide 2 / 7</div>
-  <h2>The Problem</h2>
-  <p>Every year, <span class="highlight">1.5 lakh+</span> people die on Indian roads.<br>Delayed emergency response is a leading cause of preventable death.</p>
-  <ul>
-    <li>No standardized triage at the scene</li>
-    <li>Language barriers between callers and responders</li>
-    <li>Slow manual dispatch decisions</li>
-    <li>System abuse and false alarms clogging resources</li>
-  </ul>
+<!-- SLIDE 2: The Problem -->
+<div class="slide slide-2">
+  <div class="stat-giant">1.19M</div>
+  <p class="stat-sub">lives lost on roads every year — <span class="accent">half within 60 minutes</span></p>
+  <p style="font-size:1.6rem;font-weight:700;color:#fca5a5;margin:1.5rem 0 2rem;font-style:italic;">
+    "Most aren't killed by the crash. They're killed by the wait."
+  </p>
+  <div class="card" style="max-width:700px;width:100%;">
+    <table>
+      <thead><tr><th>Metric</th><th>Global</th><th>BIMSTEC</th></tr></thead>
+      <tbody>
+        <tr><td>Ambulance response (urban)</td><td>8-12 min</td><td class="bad">20-35 min</td></tr>
+        <tr><td>Ambulance response (rural)</td><td>15-25 min</td><td class="bad">45-90+ min</td></tr>
+        <tr><td>Bystander first-aid rate</td><td>15-25%</td><td class="bad">&lt; 5%</td></tr>
+        <tr><td>Deaths within Golden Hour</td><td>~50%</td><td class="bad">60-70%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <span class="slide-num">2 / 7</span>
 </div>
 
-<div class="slide" data-slide="2">
-  <div class="counter">Slide 3 / 7</div>
+<!-- SLIDE 3: Our Solution -->
+<div class="slide slide-3">
   <h2>Our Solution</h2>
-  <p>RoadSoS is an <span class="highlight">AI-powered emergency companion</span> that guides bystanders through triage, dispatches services, and detects fraud — in <span class="highlight">5 languages</span>.</p>
-  <div class="feature-grid">
-    <div class="feature-card">
-      <h3>🤖 AI Triage Agent</h3>
-      <p>LangGraph-powered decision graph determines severity (RED/YELLOW/GREEN) through guided questions</p>
+  <p class="subtitle" style="max-width:700px;text-align:center;">
+    A multi-modal AI emergency companion — WhatsApp, voice, SMS, AR —<br>
+    that orchestrates the <span class="accent">entire chain of survival</span>.
+  </p>
+  <div class="grid-3" style="margin-bottom:1.5rem;">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:2rem;margin-bottom:0.3rem;">&#9889;</div>
+      <div style="font-weight:700;font-size:1.1rem;">Speed</div>
+      <div style="font-size:0.8rem;color:#94a3b8;">One tap, zero friction.<br>No login walls.</div>
     </div>
-    <div class="feature-card">
-      <h3>🚨 Smart Dispatch</h3>
-      <p>Nearest hospital, ambulance, and police found via PostGIS + OSRM routing with ETA estimates</p>
+    <div class="card" style="text-align:center;">
+      <div style="font-size:2rem;margin-bottom:0.3rem;">&#128483;</div>
+      <div style="font-weight:700;font-size:1.1rem;">Vernacular</div>
+      <div style="font-size:0.8rem;color:#94a3b8;">8+ BIMSTEC languages.<br>Code-mixed speech.</div>
     </div>
-    <div class="feature-card">
-      <h3>🛡️ Fraud Detection</h3>
-      <p>Rate limiting, geohash clustering, geo-velocity, and threat scoring protect emergency resources</p>
-    </div>
-    <div class="feature-card">
-      <h3>🌐 Multilingual</h3>
-      <p>Supports English, Hindi, Tamil, Bengali, and Sinhala for protocol instructions and triage</p>
+    <div class="card" style="text-align:center;">
+      <div style="font-size:2rem;margin-bottom:0.3rem;">&#128267;</div>
+      <div style="font-weight:700;font-size:1.1rem;">Resilient</div>
+      <div style="font-size:0.8rem;color:#94a3b8;">Offline-first. SMS fallback.<br>One bar of signal is enough.</div>
     </div>
   </div>
+  <div class="pill-row">
+    <span class="pill">PWA</span>
+    <span class="pill">WhatsApp</span>
+    <span class="pill">IVR Voice</span>
+    <span class="pill">SMS</span>
+    <span class="pill">AR Overlay</span>
+  </div>
+  <span class="slide-num">3 / 7</span>
 </div>
 
-<div class="slide" data-slide="3">
-  <div class="counter">Slide 4 / 7</div>
+<!-- SLIDE 4: How It Works (Ravi Story) -->
+<div class="slide slide-4">
   <h2>How It Works</h2>
-  <div class="demo-area">
-    <p style="text-align:left; margin-bottom:1rem; font-size:0.95rem;"><strong>User Flow:</strong></p>
-    <code>① Tap SOS  →  ② GPS captured  →  ③ AI triage chat  →  ④ Severity classified  →  ⑤ Nearest services dispatched  →  ⑥ ETA tracked</code><br><br>
-    <code>⑦ Emergency contacts notified  →  ⑧ Incident data retained for review</code>
+  <p class="subtitle">11 PM, NH-37 Assam. A passing driver, Ravi, stops at a crash scene.</p>
+  <div style="max-width:800px;width:100%;">
+    <div class="timeline-item"><span class="timeline-icon">&#128505;</span><span class="timeline-time">0:00</span><span class="timeline-text">Ravi taps SOS on PWA — or sends "SOS" on WhatsApp</span></div>
+    <div class="timeline-item"><span class="timeline-icon">&#129302;</span><span class="timeline-time">0:05</span><span class="timeline-text">GPS locked. AI asks triage questions <em>in Assamese</em> (phone locale detected)</span></div>
+    <div class="timeline-item"><span class="timeline-icon">&#128657;</span><span class="timeline-time">0:20</span><span class="timeline-text">HIGH severity inferred → ALS ambulance dispatched (not the closer PHC — it lacks neuro-care)</span></div>
+    <div class="timeline-item"><span class="timeline-icon">&#128203;</span><span class="timeline-time">0:35</span><span class="timeline-text">Voice + AR overlay guides Ravi through bleeding control while stabilizing neck</span></div>
+    <div class="timeline-item"><span class="timeline-icon">&#128248;</span><span class="timeline-time">1:10</span><span class="timeline-text">Scene photos uploaded. Police alerted. Victim's ICE contact called via NFC tag</span></div>
+    <div class="timeline-item"><span class="timeline-icon">&#127973;</span><span class="timeline-time">11:20</span><span class="timeline-text">Ambulance arrives. ER pre-warned with triage notes. The Golden Hour is intact.</span></div>
   </div>
-  <p style="margin-top:1.5rem; font-size:0.95rem;">Works via <strong>PWA</strong>, <strong>WhatsApp</strong>, or <strong>IVR voice call</strong> (Twilio)</p>
+  <div class="pill-row" style="margin-top:1rem;">
+    <span class="pill">LangGraph</span>
+    <span class="pill">Llama 3.1</span>
+    <span class="pill">FastAPI</span>
+    <span class="pill">Whisper ASR</span>
+    <span class="pill">PostGIS</span>
+    <span class="pill">WhatsApp API</span>
+    <span class="pill">OSRM</span>
+  </div>
+  <span class="slide-num">4 / 7</span>
 </div>
 
-<div class="slide" data-slide="4">
-  <div class="counter">Slide 5 / 7</div>
-  <h2>Architecture</h2>
-  <pre style="background:#1e293b; border-radius:12px; padding:1.5rem; font-size:0.85rem; line-height:1.5; max-width:700px; overflow:auto; text-align:left; border:1px solid #334155;">┌──────────────┐     ┌──────────────┐     ┌──────────────────┐
-│  PWA / WA /  │────▶│  FastAPI     │────▶│  PostgreSQL      │
-│  IVR Clients  │     │  + LangGraph │     │  + PostGIS        │
-└──────────────┘     │  + Redis     │     │  + pgvector       │
-                     │  + Celery    │     └──────────────────┘
-                     └──────────────┘             │
-                           │                      │
-                     ┌─────▼──────┐     ┌────────▼────────┐
-                     │  Nginx     │     │  OSRM / Routing │
-                     │  (port 80) │     └─────────────────┘
-                     └────────────┘</pre>
-  <div class="tech-list">
-    <span class="tech-tag">FastAPI</span>
-    <span class="tech-tag">Next.js PWA</span>
-    <span class="tech-tag">PostGIS</span>
-    <span class="tech-tag">Redis</span>
-    <span class="tech-tag">Celery</span>
-    <span class="tech-tag">LangGraph</span>
-    <span class="tech-tag">OpenTelemetry</span>
-  </div>
-</div>
-
-<div class="slide" data-slide="5">
-  <div class="counter">Slide 6 / 7</div>
-  <h2>Key Differentiators</h2>
-  <div class="feature-grid">
-    <div class="feature-card">
-      <h3>Zero False Alarms</h3>
-      <p>Multi-layer fraud engine — rate limit, geo-velocity, duplicate detection — keeps resources available</p>
+<!-- SLIDE 5: Tech & AI Depth -->
+<div class="slide slide-5">
+  <h2>Tech & AI Depth</h2>
+  <div style="display:flex;gap:2rem;max-width:900px;width:100%;align-items:flex-start;">
+    <div style="flex:1.2;">
+      <div class="arch-layer" style="background:rgba(230,57,70,0.15);border:1px solid rgba(230,57,70,0.3);">
+        <strong>Presentation</strong> &nbsp; PWA &middot; WhatsApp &middot; IVR &middot; SMS &middot; AR Camera
+      </div>
+      <div class="arch-layer" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);">
+        <strong>AI Orchestration</strong> &nbsp; LangGraph Agent &middot; RAG (WHO Protocols) &middot; ASR/TTS &middot; IndicTrans2
+      </div>
+      <div class="arch-layer" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);">
+        <strong>Services</strong> &nbsp; Dispatch &middot; Geocoder &middot; Notification &middot; Fraud Detection
+      </div>
+      <div class="arch-layer" style="background:rgba(22,163,74,0.15);border:1px solid rgba(22,163,74,0.3);">
+        <strong>Data</strong> &nbsp; PostgreSQL+PostGIS &middot; pgvector &middot; Redis &middot; Celery
+      </div>
     </div>
-    <div class="feature-card">
-      <h3>Offline-First PWA</h3>
-      <p>Service worker caches protocols and triage flow — works without internet at accident site</p>
-    </div>
-    <div class="feature-card">
-      <h3>Open Source Stack</h3>
-      <p>100% open-source, no paid API dependencies. Sentence-transformers for RAG embeddings</p>
-    </div>
-    <div class="feature-card">
-      <h3>DPDP Compliant</h3>
-      <p>Auto-purge of incident data after retention window. Location anonymization on cleanup</p>
+    <div style="flex:0.8;">
+      <div class="callout" style="margin-bottom:1rem;">
+        <strong>Why RAG, not free generation?</strong><br>
+        Medical hallucination is unacceptable. Every instruction grounded in vetted WHO + ATLS corpus. Confidence &lt; 0.78 → human dispatcher.
+      </div>
+      <div class="pill-row" style="justify-content:flex-start;">
+        <span class="pill">Open-weights LLM</span>
+        <span class="pill">On-prem deploy</span>
+        <span class="pill">Offline-first</span>
+        <span class="pill">8 languages</span>
+      </div>
     </div>
   </div>
+  <span class="slide-num">5 / 7</span>
 </div>
 
-<div class="slide" data-slide="6">
-  <div class="counter">Slide 7 / 7</div>
-  <h2>Let's Save Lives</h2>
-  <p class="quote">"The difference between life and death in a road accident<br>is often measured in minutes."</p>
-  <p style="margin-top:1.5rem;">RoadSoS turns any phone into a life-saving tool —<br>no app install required, works on any browser.</p>
-  <div style="margin-top:2rem;">
-    <p style="font-size:0.9rem; color:#64748b;">Team: CoERS, IIT Madras · RBG Labs<br>Hackathon: Road Safety 2026</p>
+<!-- SLIDE 6: Impact & Roadmap -->
+<div class="slide slide-6">
+  <h2>Impact & Roadmap</h2>
+  <div style="display:flex;gap:3rem;max-width:900px;width:100%;align-items:flex-start;">
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:4rem;font-weight:900;color:#16a34a;line-height:1;">22-34%</div>
+      <p style="font-size:1rem;color:#94a3b8;margin-top:0.3rem;">projected mortality reduction</p>
+      <p style="font-size:0.8rem;color:#64748b;margin-top:0.5rem;">
+        Modelled against WHO trauma curves.<br>
+        If response time cut by 15 minutes<br>
+        on BIMSTEC highway corridors.
+      </p>
+      <div style="margin-top:1.5rem;display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;">
+        <span class="pill">Open-source SDK</span>
+        <span class="pill">Privacy-by-design</span>
+        <span class="pill">CoERS governance</span>
+      </div>
+    </div>
+    <div style="flex:1;">
+      <div class="roadmap-row"><span class="roadmap-phase">Stage 1</span><span class="roadmap-date">Jun 2026</span><span class="roadmap-desc">PWA MVP, WhatsApp bot, TN seed DB, demo</span></div>
+      <div class="roadmap-row"><span class="roadmap-phase">Pilot A</span><span class="roadmap-date">Q3 2026</span><span class="roadmap-desc">2 highway corridors (NH-44, NH-66) with state EMS</span></div>
+      <div class="roadmap-row"><span class="roadmap-phase">Pilot B</span><span class="roadmap-date">Q4 2026</span><span class="roadmap-desc">6 Indian states + Sri Lanka + Bhutan via BIMSTEC</span></div>
+      <div class="roadmap-row"><span class="roadmap-phase">Scale</span><span class="roadmap-date">2027</span><span class="roadmap-desc">Cross-BIMSTEC rollout, national 112 integration</span></div>
+    </div>
   </div>
+  <span class="slide-num">6 / 7</span>
 </div>
 
-<div class="nav-bar">
-  <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)" disabled>← Back</button>
-  <span id="slideCounter" style="color:#94a3b8; font-size:1rem;">1 / 7</span>
-  <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next →</button>
+<!-- SLIDE 7: Thank You -->
+<div class="slide slide-7">
+  <p style="font-size:1.6rem;font-style:italic;color:#fbbf24;max-width:700px;text-align:center;line-height:1.5;margin-bottom:2rem;">
+    "Every minute matters. Let's give every road user a fighting chance."
+  </p>
+  <div style="display:flex;gap:3rem;align-items:center;margin-bottom:2rem;">
+    <div style="text-align:center;">
+      <div class="qr-placeholder">QR<br>Try the PWA</div>
+      <p style="font-size:0.75rem;color:#64748b;margin-top:0.5rem;">Scan to try RoadSoS</p>
+    </div>
+    <div style="text-align:center;">
+      <div class="qr-placeholder">QR<br>WhatsApp SOS</div>
+      <p style="font-size:0.75rem;color:#64748b;margin-top:0.5rem;">Send "SOS" to start</p>
+    </div>
+  </div>
+  <p style="font-size:0.85rem;color:#94a3b8;">
+    Team RoadSoS &middot; CoERS, IIT Madras &middot; RBG Labs
+  </p>
+  <p style="font-size:0.75rem;color:#475569;margin-top:0.5rem;">
+    Road Safety Hackathon 2026 &middot; BIMSTEC Track
+  </p>
+  <span class="slide-num">7 / 7</span>
 </div>
 
-<script>
-let current = 0;
-const slides = document.querySelectorAll('.slide');
-const total = slides.length;
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
-const counter = document.getElementById('slideCounter');
-
-function showSlide(n) {
-  slides[current].classList.remove('active');
-  current = (n + total) % total;
-  slides[current].classList.add('active');
-  prevBtn.disabled = current === 0;
-  nextBtn.disabled = current === total - 1;
-  counter.textContent = (current + 1) + ' / ' + total;
-}
-
-function changeSlide(dir) { showSlide(current + dir); }
-
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'ArrowLeft') showSlide(current - 1);
-  if (e.key === 'ArrowRight') showSlide(current + 1);
-});
-</script>
 </body>
 </html>

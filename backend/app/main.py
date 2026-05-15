@@ -20,8 +20,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from opentelemetry import trace
-
 from app.config import settings
 from app.database import init_db, close_db
 from app.errors import (
@@ -44,12 +42,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ─── OpenTelemetry Setup ─────────────────────────────────────────────────────
-
-tracer = trace.get_tracer("roadsos")
-
-
-# ─── Rate Limit Middleware (OTel-instrumented) ────────────────────────────────
+# ─── Rate Limit Middleware ───────────────────────────────────────────────────
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Simple in-memory rate limiter per client IP."""
@@ -154,29 +147,4 @@ async def root():
     }
 
 
-# ─── OTel Helper: instrument critical paths ──────────────────────────────────
-
-async def instrumented_incident_initiate(incident_id: str, severity: str | None, response_time_ms: float):
-    """Create an OTel span for incident initiation."""
-    with tracer.start_as_current_span("incident_initiate") as span:
-        span.set_attribute("incident_id", incident_id)
-        if severity:
-            span.set_attribute("severity", severity)
-        span.set_attribute("response_time_ms", response_time_ms)
-
-
-async def instrumented_triage_step(step: str, incident_id: str, response_time_ms: float):
-    """Create an OTel span for each triage step."""
-    with tracer.start_as_current_span("triage_step") as span:
-        span.set_attribute("step", step)
-        span.set_attribute("incident_id", incident_id)
-        span.set_attribute("response_time_ms", response_time_ms)
-
-
-async def instrumented_dispatch_confirm(incident_id: str, severity: str | None, response_time_ms: float):
-    """Create an OTel span for dispatch confirmation."""
-    with tracer.start_as_current_span("dispatch_confirm") as span:
-        span.set_attribute("incident_id", incident_id)
-        if severity:
-            span.set_attribute("severity", severity)
-        span.set_attribute("response_time_ms", response_time_ms)
+# OTel instrumentation helpers are in app.telemetry (avoids circular imports)

@@ -40,6 +40,7 @@ class Incident(Base):
 
     status = Column(String(20), default="active", index=True)
     human_escalated = Column(Boolean, default=False)
+    fraud_metadata = Column(JSON, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 

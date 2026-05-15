@@ -7,14 +7,12 @@ The mock fallback (default) uses a deterministic state machine.
 from typing import Any
 
 from langgraph.graph import StateGraph, START, END
-from langgraph.prebuilt import ToolNode
 from langgraph.checkpoint.memory import MemorySaver
 
 from app.services.triage import (
     TRIAGE_FLOW,
     SEVERITY_MAP,
     classify_severity,
-    TriageAgent as LegacyTriageAgent,
 )
 
 

@@ -33,7 +33,7 @@ export default function Home() {
 
       setIncidentId(resp.incident_id);
       // Navigate to triage chat
-      router.push(`/incident/${resp.incident_id}`);
+      router.push(`/incident?id=${resp.incident_id}`);
     } catch (err: any) {
       setError(err.message || "Could not get location. Please enable GPS.");
       setTimeout(() => setError(null), 5000);

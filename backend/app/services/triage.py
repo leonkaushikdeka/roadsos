@@ -3,6 +3,9 @@ Triage service — LangGraph agent wrapper with RAG protocol retrieval.
 
 This module bridges the FastAPI routes layer with the LangGraph triage agent
 and the retrieval-augmented protocol corpus.
+
+Exports: TRIAGE_FLOW, SEVERITY_MAP, classify_severity, _match,
+         TriageAgent, LegacyTriageAgent, get_triage_agent
 """
 import json
 import os
@@ -11,12 +14,165 @@ from typing import Optional
 from app.config import settings
 from app.services.protocol_rag import search_protocols
 
-# Import the legacy triage flow for backward compatibility (tests, etc.)
-from app.services.triage import (
-    TRIAGE_FLOW,
-    SEVERITY_MAP,
-    classify_severity,
-)
+
+# ─── Helper ─────────────────────────────────────────────────────────────────
+
+def _match(answer: str, keywords: list[str]) -> bool:
+    """Check if any keyword is a substring of the answer."""
+    al = answer.lower().strip()
+    return any(k in al for k in keywords)
+
+
+# ─── Triage FSM Definition ──────────────────────────────────────────────────
+
+TRIAGE_FLOW = {
+    "INIT": {
+        "question": "Are you the victim, or are you helping someone else?",
+        "field": "role",
+        "next": {
+            "victim": "ASSESS_CONSCIOUSNESS",
+            "helping": "ASSESS_CONSCIOUSNESS",
+            "bystander": "ASSESS_CONSCIOUSNESS",
+        },
+    },
+    "ASSESS_CONSCIOUSNESS": {
+        "question": "Is the person responding to your voice or touch?",
+        "field": "conscious",
+        "next": {
+            "yes": "ASSESS_BREATHING",
+            "conscious": "ASSESS_BREATHING",
+            "awake": "ASSESS_BREATHING",
+            "responding": "ASSESS_BREATHING",
+            "no": "ASSESS_AIRWAY",
+            "unconscious": "ASSESS_AIRWAY",
+            "not": "ASSESS_AIRWAY",
+        },
+    },
+    "ASSESS_AIRWAY": {
+        "question": "Is the person breathing? Look for chest rising/falling.",
+        "field": "breathing",
+        "instruction": "Tilt the head back gently to open the airway. Look, listen, and feel for breathing for 10 seconds.",
+        "next": {
+            "yes": "ASSESS_BLEEDING",
+            "breathing": "ASSESS_BLEEDING",
+            "shallow": "ASSESS_BLEEDING",
+            "no": "CPR_INSTRUCTION",
+            "not": "CPR_INSTRUCTION",
+            "gasping": "CPR_INSTRUCTION",
+        },
+    },
+    "ASSESS_BREATHING": {
+        "question": "Is the person breathing normally?",
+        "field": "breathing",
+        "next": {
+            "yes": "ASSESS_BLEEDING",
+            "normal": "ASSESS_BLEEDING",
+            "no": "CPR_INSTRUCTION",
+            "not": "CPR_INSTRUCTION",
+            "shallow": "ASSESS_BLEEDING",
+            "gasping": "CPR_INSTRUCTION",
+        },
+    },
+    "ASSESS_BLEEDING": {
+        "question": "Is there any visible bleeding?",
+        "field": "bleeding",
+        "next": {
+            "yes": "BLEEDING_CONTROL",
+            "heavy": "BLEEDING_CONTROL",
+            "bleeding": "BLEEDING_CONTROL",
+            "blood": "BLEEDING_CONTROL",
+            "no": "ASSESS_BONES",
+            "none": "ASSESS_BONES",
+        },
+    },
+    "BLEEDING_CONTROL": {
+        "question": "Apply firm, direct pressure with a clean cloth. Are you doing this now?",
+        "field": "bleeding_controlled",
+        "instruction": "Apply firm pressure with a clean cloth directly on the wound. Keep pressing — do not lift to check. If blood soaks through, add another cloth on top.",
+        "next": {
+            "yes": "ASSESS_BONES",
+            "done": "ASSESS_BONES",
+            "no": "ASSESS_BONES",
+            "help": "ASSESS_BONES",
+        },
+    },
+    "ASSESS_BONES": {
+        "question": "Does the person have any obvious broken bones or inability to move limbs?",
+        "field": "fracture",
+        "next": {
+            "yes": "SPINAL_PRECAUTION",
+            "broken": "SPINAL_PRECAUTION",
+            "maybe": "SPINAL_PRECAUTION",
+            "no": "FINAL_SEVERITY",
+            "none": "FINAL_SEVERITY",
+        },
+    },
+    "SPINAL_PRECAUTION": {
+        "question": "Do NOT move the person. Hold their head and neck still with both hands. Understood?",
+        "field": "spine_stable",
+        "instruction": "Do NOT move the person. Hold head and neck still with both hands. Wait for professional help. Any movement could cause permanent spinal damage.",
+        "next": {
+            "yes": "FINAL_SEVERITY",
+            "done": "FINAL_SEVERITY",
+            "no": "FINAL_SEVERITY",
+            "understood": "FINAL_SEVERITY",
+        },
+    },
+    "CPR_INSTRUCTION": {
+        "question": "Place the heel of your hand on the centre of the chest. Push hard and fast — 100-120 compressions/min, at least 5cm deep. Are you starting now?",
+        "field": "cpr_started",
+        "instruction": "Place heel of hand on centre of chest. Push hard and fast at 100–120 compressions/min. Depth: at least 5cm. Do not stop until help arrives.",
+        "next": {
+            "yes": "FINAL_SEVERITY",
+            "started": "FINAL_SEVERITY",
+            "no": "FINAL_SEVERITY",
+        },
+    },
+}
+
+
+SEVERITY_MAP = {
+    "not_breathing": ("RED", 0.95),
+    "unconscious_bleeding": ("RED", 0.90),
+    "unconscious": ("RED", 0.85),
+    "cpr_needed": ("RED", 0.92),
+    "heavy_bleeding": ("YELLOW", 0.80),
+    "bleeding_conscious": ("YELLOW", 0.75),
+    "fracture_conscious": ("YELLOW", 0.70),
+    "minor": ("GREEN", 0.85),
+    "default": ("YELLOW", 0.65),
+}
+
+
+def classify_severity(answers: dict) -> tuple[str, float]:
+    """Classify incident severity from collected triage answers."""
+    breathing = answers.get("breathing", "").lower()
+    conscious = answers.get("conscious", "").lower()
+    bleeding = answers.get("bleeding", "").lower()
+    fracture = answers.get("fracture", "").lower()
+    cpr = answers.get("cpr_started", "").lower()
+
+    # RED: life-threatening
+    if breathing in ("no", "not", "gasping") or cpr in ("yes", "started"):
+        return SEVERITY_MAP["not_breathing"]
+    if conscious in ("no", "unconscious", "not") and bleeding in ("yes", "heavy", "bleeding", "blood"):
+        return SEVERITY_MAP["unconscious_bleeding"]
+    if conscious in ("no", "unconscious", "not"):
+        return SEVERITY_MAP["unconscious"]
+
+    # YELLOW: moderate
+    if bleeding in ("yes", "heavy", "bleeding", "blood") and conscious in ("yes", "awake", "responding", "conscious"):
+        return SEVERITY_MAP["bleeding_conscious"]
+    if bleeding in ("yes", "heavy", "bleeding", "blood"):
+        return SEVERITY_MAP["heavy_bleeding"]
+    if fracture in ("yes", "broken", "maybe"):
+        return SEVERITY_MAP["fracture_conscious"]
+
+    # GREEN: stable
+    if bleeding in ("no", "none", "") and fracture in ("no", "none", "") and conscious in ("yes", "awake", "responding", "conscious"):
+        return SEVERITY_MAP["minor"]
+
+    return SEVERITY_MAP["default"]
 
 
 # ─── LangGraph Agent Lazy Loader ─────────────────────────────────────────────

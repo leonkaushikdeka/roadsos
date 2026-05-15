@@ -91,7 +91,7 @@ export default function AdminDashboard() {
                       className="h-full rounded-full transition-all duration-700"
                       style={{
                         width: `${Math.max(1, (
-                          (stats[`${sev.toLowerCase()}_count"] || 0) /
+                          (stats[`${sev.toLowerCase()}_count`] || 0) /
                           (stats.total_incidents || 1)
                         ) * 100)}%`,
                         background: sev === "RED"

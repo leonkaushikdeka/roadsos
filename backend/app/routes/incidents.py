@@ -24,7 +24,7 @@ from app.services.triage import TriageAgent
 from app.services.dispatch import find_nearest_services, dispatch_ambulance, rank_hospitals
 from app.services.notification import notification_service
 from app.services.fraud import FraudEngine, FraudCheckResult
-from app.main import instrumented_incident_initiate, instrumented_triage_step, instrumented_dispatch_confirm
+from app.telemetry import instrumented_incident_initiate, instrumented_triage_step, instrumented_dispatch_confirm
 
 router = APIRouter(prefix="/v1/incident", tags=["Incidents"])
 

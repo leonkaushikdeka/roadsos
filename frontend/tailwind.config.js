@@ -4,7 +4,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        sos: { red: "#DC2626", orange: "#EA580C", yellow: "#F59E0B", green: "#16A34A", dark: "#0F172A" },
+        sos: { red: "#DC2626", orange: "#EA580C", yellow: "#F59E0B", green: "#16A34A", blue: "#2563EB", dark: "#0F172A" },
       },
       animation: {
         pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
