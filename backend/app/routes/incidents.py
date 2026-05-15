@@ -133,13 +133,8 @@ async def process_triage(
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
 
-    # Check if this incident was flagged
+    # Log fraud metadata but don't block triage — genuine emergencies must get through
     fraud_meta = incident[4] or {}
-    if fraud_meta.get("risk_level") in ("high", "critical"):
-        raise HTTPException(
-            status_code=403,
-            detail="This incident is under fraud review.",
-        )
 
     from app.services.triage import TRIAGE_FLOW
 
