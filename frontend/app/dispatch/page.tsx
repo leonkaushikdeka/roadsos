@@ -153,6 +153,28 @@ export default function DispatchPage() {
               </span>
             </div>
           ))}
+          {dispatchData?.towing?.slice(0, 2).map((t: any) => (
+            <div key={t.id} className="flex justify-between items-center">
+              <span className="text-sm">
+                <span className="text-xs text-white/60 mr-2">🚛</span>
+                {t.name}
+              </span>
+              <span className="text-xs text-white/60">
+                {t.distance_km} km · {t.eta_min} min
+              </span>
+            </div>
+          ))}
+          {dispatchData?.puncture_shop?.slice(0, 2).map((ps: any) => (
+            <div key={ps.id} className="flex justify-between items-center">
+              <span className="text-sm">
+                <span className="text-xs text-white/60 mr-2">🔧</span>
+                {ps.name}
+              </span>
+              <span className="text-xs text-white/60">
+                {ps.distance_km} km
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 

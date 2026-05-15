@@ -16,6 +16,9 @@ SERVICE_PRIORITY = {
     "police": 3,
     "fire": 4,
     "blood_bank": 5,
+    "towing": 6,
+    "puncture_shop": 7,
+    "showroom": 8,
 }
 
 
@@ -49,7 +52,10 @@ async def _get_osrm_eta(start_lng: float, start_lat: float, end_lng: float, end_
 
 def _linear_eta(distance_km: float, service_type: str) -> float:
     """Fallback linear ETA estimate."""
-    speed_map = {"hospital": 0.8, "ambulance": 0.6, "police": 0.5, "fire": 0.5, "blood_bank": 0.6}
+    speed_map = {
+        "hospital": 0.8, "ambulance": 0.6, "police": 0.5, "fire": 0.5,
+        "blood_bank": 0.6, "towing": 0.4, "puncture_shop": 0.5, "showroom": 0.5,
+    }
     speed = speed_map.get(service_type, 0.5)
     return max(1, round(distance_km / speed))
 

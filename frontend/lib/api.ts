@@ -235,4 +235,18 @@ export const roadsosApi = {
       avg_eta_min: number;
       period_days: number;
     }>(`/v1/admin/stats?days=${days || 30}`),
+
+  /** Fetch ALL service types near a location in one call */
+  getAllNearbyServices: (lat: number, lng: number, radius?: number) =>
+    apiFetch<{
+      services: Record<string, any[]>;
+      total: number;
+      radius_km: number;
+    }>(`/v1/services/all-nearby?lat=${lat}&lng=${lng}&radius_km=${radius || 25}`),
+
+  /** Get emergency numbers for a country or all countries */
+  getEmergencyNumbers: (countryCode?: string) =>
+    apiFetch<any>(
+      `/v1/services/emergency-numbers${countryCode ? `?country_code=${countryCode}` : ""}`,
+    ),
 };

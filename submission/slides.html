@@ -201,7 +201,7 @@
   <div style="max-width:800px;width:100%;">
     <div class="timeline-item"><span class="timeline-icon">&#128505;</span><span class="timeline-time">0:00</span><span class="timeline-text">Ravi taps SOS on PWA — or sends "SOS" on WhatsApp</span></div>
     <div class="timeline-item"><span class="timeline-icon">&#129302;</span><span class="timeline-time">0:05</span><span class="timeline-text">GPS locked. AI asks triage questions <em>in Assamese</em> (phone locale detected)</span></div>
-    <div class="timeline-item"><span class="timeline-icon">&#128657;</span><span class="timeline-time">0:20</span><span class="timeline-text">HIGH severity inferred → ALS ambulance dispatched (not the closer PHC — it lacks neuro-care)</span></div>
+    <div class="timeline-item"><span class="timeline-icon">&#128657;</span><span class="timeline-time">0:20</span><span class="timeline-text">HIGH severity → Ambulance, nearest hospital, police, towing &amp; puncture shops dispatched</span></div>
     <div class="timeline-item"><span class="timeline-icon">&#128203;</span><span class="timeline-time">0:35</span><span class="timeline-text">Voice + AR overlay guides Ravi through bleeding control while stabilizing neck</span></div>
     <div class="timeline-item"><span class="timeline-icon">&#128248;</span><span class="timeline-time">1:10</span><span class="timeline-text">Scene photos uploaded. Police alerted. Victim's ICE contact called via NFC tag</span></div>
     <div class="timeline-item"><span class="timeline-icon">&#127973;</span><span class="timeline-time">11:20</span><span class="timeline-text">Ambulance arrives. ER pre-warned with triage notes. The Golden Hour is intact.</span></div>
@@ -230,7 +230,7 @@
         <strong>AI Orchestration</strong> &nbsp; LangGraph Agent &middot; RAG (WHO Protocols) &middot; ASR/TTS &middot; IndicTrans2
       </div>
       <div class="arch-layer" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);">
-        <strong>Services</strong> &nbsp; Dispatch &middot; Geocoder &middot; Notification &middot; Fraud Detection
+        <strong>Services</strong> &nbsp; Hospitals &middot; Ambulances &middot; Police &middot; Towing &middot; Puncture Shops &middot; Showrooms
       </div>
       <div class="arch-layer" style="background:rgba(22,163,74,0.15);border:1px solid rgba(22,163,74,0.3);">
         <strong>Data</strong> &nbsp; PostgreSQL+PostGIS &middot; pgvector &middot; Redis &middot; Celery
@@ -245,6 +245,7 @@
         <span class="pill">Open-weights LLM</span>
         <span class="pill">On-prem deploy</span>
         <span class="pill">Offline-first</span>
+        <span class="pill">14 countries</span>
         <span class="pill">8 languages</span>
       </div>
     </div>

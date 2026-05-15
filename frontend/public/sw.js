@@ -22,6 +22,8 @@ const ASSETS_TO_CACHE = [
 
 const API_CACHE_PATTERNS = [
   "/v1/services/nearby",
+  "/v1/services/all-nearby",
+  "/v1/services/emergency-numbers",
   "/v1/services/",
   "/v1/admin/heatmap",
   "/v1/admin/stats",
@@ -84,6 +86,22 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Emergency numbers → cache-first with hardcoded offline fallback
+  if (url.pathname.includes("/emergency-numbers")) {
+    event.respondWith(
+      networkFirstWithTimeout(request, API_CACHE, 1000).then((res) => {
+        if (res.status === 503) {
+          return new Response(
+            JSON.stringify({ countries: OFFLINE_EMERGENCY_NUMBERS }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        return res;
+      }),
+    );
+    return;
+  }
+
   // API calls → network-first with cache fallback
   if (API_CACHE_PATTERNS.some((p) => url.pathname.startsWith(p))) {
     event.respondWith(networkFirstWithTimeout(request, API_CACHE, 1000));
@@ -110,6 +128,21 @@ self.addEventListener("fetch", (event) => {
     }),
   );
 });
+
+// ─── Offline fallback: hardcoded emergency numbers (always available) ──────
+
+const OFFLINE_EMERGENCY_NUMBERS = {
+  IN: { name: "India", ambulance: "108", police: "100", fire: "101", universal: "112", highway: "1033" },
+  BD: { name: "Bangladesh", ambulance: "199", police: "999", fire: "199", universal: "999" },
+  LK: { name: "Sri Lanka", ambulance: "1990", police: "119", fire: "110", universal: "110" },
+  TH: { name: "Thailand", ambulance: "1669", police: "191", fire: "199", universal: "191" },
+  MM: { name: "Myanmar", ambulance: "192", police: "199", fire: "191", universal: "199" },
+  NP: { name: "Nepal", ambulance: "102", police: "100", fire: "101", universal: "112" },
+  BT: { name: "Bhutan", ambulance: "112", police: "113", fire: "110", universal: "112" },
+  US: { name: "United States", ambulance: "911", police: "911", fire: "911", universal: "911" },
+  GB: { name: "United Kingdom", ambulance: "999", police: "999", fire: "999", universal: "112" },
+  AU: { name: "Australia", ambulance: "000", police: "000", fire: "000", universal: "112" },
+};
 
 // ─── Strategy helpers ──────────────────────────────────────────────────────
 

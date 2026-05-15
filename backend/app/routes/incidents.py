@@ -200,15 +200,32 @@ async def process_triage(
         if loc:
             lat, lng = loc[1], loc[0]
             if severity in ("RED", "YELLOW"):
-                hospitals = await find_nearest_services(db, lat, lng, "hospital")
-                ambulances = await find_nearest_services(db, lat, lng, "ambulance")
-                police = await find_nearest_services(db, lat, lng, "police", radius_km=10)
+                hospitals = await find_nearest_services(db, lat, lng, "hospital", limit=10)
+                ambulances = await find_nearest_services(db, lat, lng, "ambulance", limit=10)
+                police = await find_nearest_services(db, lat, lng, "police", radius_km=15, limit=5)
+                towing = await find_nearest_services(db, lat, lng, "towing", radius_km=15, limit=5)
+                puncture_shops = await find_nearest_services(db, lat, lng, "puncture_shop", radius_km=15, limit=5)
+
+                ranked_hospitals = await rank_hospitals(hospitals)
+                dispatch_options = {
+                    "hospitals": ranked_hospitals[:5],
+                    "ambulances": ambulances[:5],
+                    "police": police[:3],
+                    "towing": towing[:3],
+                    "puncture_shop": puncture_shops[:3],
+                }
+            elif severity == "GREEN":
+                hospitals = await find_nearest_services(db, lat, lng, "hospital", limit=5)
+                police = await find_nearest_services(db, lat, lng, "police", radius_km=10, limit=3)
+                towing = await find_nearest_services(db, lat, lng, "towing", radius_km=15, limit=5)
+                puncture_shops = await find_nearest_services(db, lat, lng, "puncture_shop", radius_km=15, limit=5)
 
                 ranked_hospitals = await rank_hospitals(hospitals)
                 dispatch_options = {
                     "hospitals": ranked_hospitals[:3],
-                    "ambulances": ambulances[:3],
                     "police": police[:2],
+                    "towing": towing[:3],
+                    "puncture_shop": puncture_shops[:3],
                 }
 
                 if ambulances:
