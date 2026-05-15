@@ -238,6 +238,7 @@ async def process_triage(
                 }
             elif severity == "GREEN":
                 hospitals = await find_nearest_services(db, lat, lng, "hospital", limit=5)
+                ambulances = await find_nearest_services(db, lat, lng, "ambulance", limit=5)
                 police = await find_nearest_services(db, lat, lng, "police", radius_km=10, limit=3)
                 towing = await find_nearest_services(db, lat, lng, "towing", radius_km=15, limit=5)
                 puncture_shops = await find_nearest_services(db, lat, lng, "puncture_shop", radius_km=15, limit=5)
@@ -245,13 +246,11 @@ async def process_triage(
                 ranked_hospitals = await rank_hospitals(hospitals)
                 dispatch_options = {
                     "hospitals": ranked_hospitals[:3],
+                    "ambulances": ambulances[:3],
                     "police": police[:2],
                     "towing": towing[:3],
                     "puncture_shop": puncture_shops[:3],
                 }
-
-                if ambulances:
-                    await dispatch_ambulance(db, incident_id, ambulances[0]["id"], lat, lng)
 
         # Auto-alert emergency contacts if severity RED
         user_incident = await db.execute(
