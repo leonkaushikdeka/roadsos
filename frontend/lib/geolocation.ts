@@ -1,14 +1,27 @@
+export type GeoPermissionState = "granted" | "denied" | "prompt" | "unsupported";
+
+export async function getGeolocationPermissionState(): Promise<GeoPermissionState> {
+  if (!navigator.geolocation) return "unsupported";
+  if (!navigator.permissions) return "prompt"; // assume prompt if API unavailable
+  try {
+    const status = await navigator.permissions.query({ name: "geolocation" });
+    return status.state as GeoPermissionState;
+  } catch {
+    return "prompt";
+  }
+}
+
 export function getCurrentPosition(options?: PositionOptions): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error("Geolocation not supported"));
+      reject(new Error("Geolocation not supported on this device"));
       return;
     }
 
     navigator.geolocation.getCurrentPosition(resolve, reject, {
       enableHighAccuracy: true,
       timeout: 10000,
-      maximumAge: 30000,
+      maximumAge: 0, // never use cached position
       ...options,
     });
   });
@@ -27,7 +40,7 @@ export function watchPosition(
   return navigator.geolocation.watchPosition(callback, onError, {
     enableHighAccuracy: true,
     timeout: 10000,
-    maximumAge: 30000,
+    maximumAge: 0,
     ...options,
   });
 }

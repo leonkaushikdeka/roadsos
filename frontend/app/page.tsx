@@ -3,17 +3,27 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { roadsosApi } from "@/lib/api";
-import { getCurrentPosition } from "@/lib/geolocation";
+import { getCurrentPosition, getGeolocationPermissionState } from "@/lib/geolocation";
 
 export default function Home() {
   const router = useRouter();
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locationBlocked, setLocationBlocked] = useState(false);
   const [incidentId, setIncidentId] = useState<string | null>(null);
 
   const handleSOS = useCallback(async () => {
     setProcessing(true);
     setError(null);
+    setLocationBlocked(false);
+
+    // Check permission state before attempting — gives immediate feedback
+    const permState = await getGeolocationPermissionState();
+    if (permState === "denied") {
+      setLocationBlocked(true);
+      setProcessing(false);
+      return;
+    }
 
     try {
       const pos = await getCurrentPosition();
@@ -35,8 +45,13 @@ export default function Home() {
       // Navigate to triage chat
       router.push(`/incident?id=${resp.incident_id}`);
     } catch (err: any) {
-      setError(err.message || "Could not get location. Please enable GPS.");
-      setTimeout(() => setError(null), 5000);
+      // PERMISSION_DENIED code = 1
+      if (err?.code === 1) {
+        setLocationBlocked(true);
+      } else {
+        setError(err.message || "Could not get location. Please enable GPS.");
+        setTimeout(() => setError(null), 5000);
+      }
       setProcessing(false);
     }
   }, [router]);
@@ -83,6 +98,26 @@ export default function Home() {
         {error && (
           <div className="glass-card rounded-xl px-4 py-3 text-sm text-sos-orange w-full text-center" role="alert">
             {error}
+          </div>
+        )}
+
+        {locationBlocked && (
+          <div className="glass-card rounded-xl px-4 py-4 text-sm w-full" role="alert" aria-live="assertive">
+            <p className="font-semibold text-sos-red mb-2">Location access is blocked</p>
+            <p className="text-white/70 mb-3 text-xs leading-relaxed">
+              RoadSoS needs your GPS to dispatch help. Your browser is blocking location access.
+            </p>
+            <ol className="text-white/60 text-xs space-y-1 list-decimal list-inside mb-3">
+              <li>Tap the lock / info icon in your browser's address bar</li>
+              <li>Find <strong className="text-white/80">Location</strong> and set it to <strong className="text-white/80">Allow</strong></li>
+              <li>Reload the page, then tap SOS again</li>
+            </ol>
+            <button
+              onClick={() => { setLocationBlocked(false); window.location.reload(); }}
+              className="w-full py-2 rounded-lg bg-sos-red/20 text-sos-red text-xs font-semibold"
+            >
+              Reload &amp; Try Again
+            </button>
           </div>
         )}
 
