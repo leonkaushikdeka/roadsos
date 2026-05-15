@@ -173,6 +173,7 @@ export const roadsosApi = {
       severity?: string;
       victim_count?: number;
       dispatched_services: any[];
+      dispatch_options?: any;
       ambulance_eta_min?: number;
       hospital_eta_min?: number;
       triage_transcript: any[];

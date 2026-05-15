@@ -83,7 +83,7 @@ export default function TriageChat({ incidentId, language, onComplete, onError }
 
         if (resp.triage_complete) {
           setComplete(true);
-          setSeverity(resp.severity);
+          setSeverity(resp.severity ?? null);
 
           const botMsg: Message = {
             text: resp.next_question || `Triage complete. Severity: ${resp.severity}. `,
@@ -96,8 +96,8 @@ export default function TriageChat({ incidentId, language, onComplete, onError }
           setMessages((prev) => [
             ...prev,
             {
-              text: resp.next_question,
-              sender: "bot",
+              text: resp.next_question!,
+              sender: "bot" as const,
               instruction: resp.instruction,
             },
           ]);

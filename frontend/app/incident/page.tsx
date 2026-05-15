@@ -38,7 +38,7 @@ export default function TriagePage() {
     async function initTriage() {
       try {
         setLoading(true);
-        const resp = await roadsosApi.startTriage(incidentId);
+        const resp = await roadsosApi.startTriage(incidentId!);
         setTriageState(resp.triage_state || "INIT");
         setMessages([{ text: resp.first_question, sender: "bot" }]);
       } catch {
@@ -72,14 +72,14 @@ export default function TriagePage() {
       setMessages((prev) => [...prev, { text: answer, sender: "user" }]);
 
       try {
-        const resp = await roadsosApi.sendTriage(incidentId, answer);
+        const resp = await roadsosApi.sendTriage(incidentId!, answer);
 
         if (resp.instruction) setInstruction(resp.instruction);
         setTriageState(resp.severity || triageState);
 
         if (resp.triage_complete) {
           setComplete(true);
-          setSeverity(resp.severity);
+          setSeverity(resp.severity ?? null);
 
           const botMsg: Message = {
             text: resp.next_question || `Triage complete. Severity: ${resp.severity}.`,
@@ -100,7 +100,7 @@ export default function TriagePage() {
         } else if (resp.next_question) {
           setMessages((prev) => [
             ...prev,
-            { text: resp.next_question, sender: "bot", instruction: resp.instruction || undefined },
+            { text: resp.next_question!, sender: "bot" as const, instruction: resp.instruction },
           ]);
         }
       } catch {

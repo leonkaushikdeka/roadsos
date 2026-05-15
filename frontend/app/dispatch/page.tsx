@@ -26,7 +26,7 @@ export default function DispatchPage() {
     const loadDispatches = async () => {
       try {
         const status = await roadsosApi.getIncidentStatus(incidentId);
-        setSeverity(status.severity);
+        setSeverity(status.severity ?? null);
         setLocation(null); // We'll get from services
 
         if (status.dispatch_options) {
