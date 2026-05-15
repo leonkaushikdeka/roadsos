@@ -49,14 +49,16 @@ async def search_protocols(
     """)
 
     # For offline/mock mode: fall back to text-based search if pgvector
-    # embeddings aren't available
+    # embeddings aren't available. Use savepoints so failures don't
+    # corrupt the outer transaction.
     try:
-        result = await db.execute(sql, {
-            "query_embedding": _compute_dummy_embedding(query),
-            "lang": lang,
-            "limit": top_k,
-        })
-        rows = result.fetchall()
+        async with db.begin_nested():
+            result = await db.execute(sql, {
+                "query_embedding": _compute_dummy_embedding(query),
+                "lang": lang,
+                "limit": top_k,
+            })
+            rows = result.fetchall()
     except Exception:
         # Fall back to keyword search
         rows = []
@@ -77,12 +79,13 @@ async def search_protocols(
             LIMIT :limit
         """)
         try:
-            result = await db.execute(keyword_sql, {
-                "lang": lang,
-                "query": query,
-                "limit": top_k,
-            })
-            rows = result.fetchall()
+            async with db.begin_nested():
+                result = await db.execute(keyword_sql, {
+                    "lang": lang,
+                    "query": query,
+                    "limit": top_k,
+                })
+                rows = result.fetchall()
         except Exception:
             return []
 
