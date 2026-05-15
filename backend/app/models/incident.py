@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, Integer, DateTime, JSON, ARRAY, Float, ForeignKey, Text, Boolean, BigInteger
-from geoalchemy2 import Geography
 from app.database import Base
 
 
@@ -12,7 +11,8 @@ class Incident(Base):
     initiated_by = Column(String, ForeignKey("users.id"), nullable=True)
     session_id = Column(String(40), unique=True, nullable=True, index=True)
 
-    location = Column(Geography(geometry_type="POINT", srid=4326), nullable=False)
+    lat = Column(Float, nullable=False)
+    lng = Column(Float, nullable=False)
     plus_code = Column(String(20), nullable=True)
     what3words = Column(String(60), nullable=True)
     location_accuracy_m = Column(Float, nullable=True)

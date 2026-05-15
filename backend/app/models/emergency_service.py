@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, SmallInteger, Boolean, DateTime, JSON, Float, ForeignKey, PrimaryKeyConstraint
-from geoalchemy2 import Geography
 from app.database import Base
 
 
@@ -13,7 +12,8 @@ class EmergencyService(Base):
     service_type = Column(String(20), nullable=False, index=True)
     sub_type = Column(String(40), nullable=True)
     trauma_grade = Column(SmallInteger, nullable=True)
-    location = Column(Geography(geometry_type="POINT", srid=4326), nullable=False)
+    lat = Column(Float, nullable=False)
+    lng = Column(Float, nullable=False)
     address = Column(String(500), nullable=True)
     city = Column(String(100), nullable=True)
     state = Column(String(40), nullable=True)

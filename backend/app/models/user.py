@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, JSON, Boolean
-from geoalchemy2 import Geography
+from sqlalchemy import Column, String, DateTime, JSON, Boolean, Float
 from app.database import Base
 
 
@@ -16,7 +15,8 @@ class User(Base):
     blood_group = Column(String(4), nullable=True)
     allergies = Column(String(500), nullable=True)
     medical_conditions = Column(String(500), nullable=True)
-    default_location = Column(Geography(geometry_type="POINT", srid=4326), nullable=True)
+    default_lat = Column(Float, nullable=True)
+    default_lng = Column(Float, nullable=True)
     is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

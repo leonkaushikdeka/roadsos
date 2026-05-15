@@ -22,9 +22,7 @@ async def get_heatmap(
 
     sql = text(f"""
         SELECT
-            ST_X(location::geometry) as lng,
-            ST_Y(location::geometry) as lat,
-            severity,
+            lng, lat, severity,
             COUNT(*) as incident_count,
             DATE(started_at) as date
         FROM incidents

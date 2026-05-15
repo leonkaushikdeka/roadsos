@@ -168,15 +168,14 @@ async def seed_database():
 
     async with async_session() as session:
         for svc in TN_HOSPITALS + TN_AMBULANCES + TN_POLICE + TN_BLOOD_BANKS:
-            wkt = f"SRID=4326;POINT({svc['lng']} {svc['lat']})"
             await session.execute(
                 text("""
                     INSERT INTO emergency_services
-                        (name, service_type, trauma_grade, location, address, phone,
+                        (name, service_type, trauma_grade, lat, lng, address, phone,
                          has_icu, has_ventilator, has_blood_bank, has_trauma_team,
                          capacity, verified)
                     VALUES
-                        (:name, :type, :grade, ST_GeomFromText(:loc, 4326), :address, :phone,
+                        (:name, :type, :grade, :lat, :lng, :address, :phone,
                          :icu, :vent, :blood, :trauma,
                          :capacity, true)
                     ON CONFLICT (id) DO NOTHING
@@ -185,7 +184,8 @@ async def seed_database():
                     "name": svc["name"],
                     "type": svc["type"],
                     "grade": svc.get("grade", 3),
-                    "loc": wkt,
+                    "lat": svc["lat"],
+                    "lng": svc["lng"],
                     "address": svc.get("address", ""),
                     "phone": svc.get("phone", ""),
                     "icu": svc.get("icu", False),

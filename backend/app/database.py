@@ -73,16 +73,16 @@ async def lifespan():
 
 async def init_db():
     """Create PostGIS extension and tables if they don't exist."""
+    # Each extension in its own transaction so a failure doesn't abort the rest
+    for ext in ("postgis", "vector"):
+        try:
+            async with engine.begin() as conn:
+                await conn.execute(text(f"CREATE EXTENSION IF NOT EXISTS {ext}"))
+        except Exception as e:
+            logger.warning(f"{ext} extension not available: {e}")
+
+    # Create tables (works even without extensions if models don't require them)
     async with engine.begin() as conn:
-        # Enable PostGIS if available (required for Geography columns)
-        try:
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
-        except Exception as e:
-            logger.warning(f"PostGIS extension not available: {e}")
-        try:
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        except Exception as e:
-            logger.warning(f"pgvector extension not available: {e}")
         from app.models import all_models  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
 

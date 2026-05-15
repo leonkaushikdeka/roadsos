@@ -71,21 +71,21 @@ async def initiate_incident(
 
     incident_id = str(uuid.uuid4())
     session_id = f"SOS-{incident_id[:8].upper()}"
-    location_wkt = f"SRID=4326;POINT({req.lng} {req.lat})"
     now = datetime.now(timezone.utc)
 
     await db.execute(
         text("""
-            INSERT INTO incidents (id, session_id, location, location_accuracy_m, location_source,
+            INSERT INTO incidents (id, session_id, lat, lng, location_accuracy_m, location_source,
                 channel, language, mode, victim_count, status, started_at, fraud_metadata)
-            VALUES (:id, :session_id, ST_GeomFromText(:location, 4326),
+            VALUES (:id, :session_id, :lat, :lng,
                     :accuracy, :loc_source, :channel, :language, :mode,
                     :victims, 'active', :now, :fraud_meta)
         """),
         {
             "id": incident_id,
             "session_id": session_id,
-            "location": location_wkt,
+            "lat": req.lat,
+            "lng": req.lng,
             "accuracy": req.location_accuracy_m,
             "loc_source": req.location_source,
             "channel": req.channel,
@@ -178,11 +178,7 @@ async def process_triage(
         severity_conf = response.get("severity_confidence", 0.0)
 
         incident_result = await db.execute(
-            text("""
-                SELECT ST_X(location::geometry) as lng,
-                       ST_Y(location::geometry) as lat
-                FROM incidents WHERE id = :id
-            """),
+            text("SELECT lat, lng FROM incidents WHERE id = :id"),
             {"id": incident_id},
         )
         loc = incident_result.fetchone()
@@ -198,7 +194,7 @@ async def process_triage(
 
         dispatch_options = {}
         if loc:
-            lat, lng = loc[1], loc[0]
+            lat, lng = float(loc[0]), float(loc[1])
             if severity in ("RED", "YELLOW"):
                 hospitals = await find_nearest_services(db, lat, lng, "hospital", limit=10)
                 ambulances = await find_nearest_services(db, lat, lng, "ambulance", limit=10)
@@ -272,9 +268,7 @@ async def confirm_dispatch(
 ):
     result = await db.execute(
         text("""
-            SELECT es.name, es.phone,
-                   ST_X(i.location::geometry) as lng,
-                   ST_Y(i.location::geometry) as lat
+            SELECT es.name, es.phone, i.lat, i.lng
             FROM incidents i, emergency_services es
             WHERE i.id = :incident_id AND es.id = :service_id
         """),
@@ -284,7 +278,7 @@ async def confirm_dispatch(
     if not row:
         raise HTTPException(status_code=404, detail="Incident or service not found")
 
-    service_name, service_phone, lng, lat = row
+    service_name, service_phone, lat, lng = row[0], row[1], float(row[2]), float(row[3])
 
     dispatch_result = await dispatch_ambulance(db, incident_id, req.service_id, lat, lng)
     eta = dispatch_result.get("eta_min", 10)

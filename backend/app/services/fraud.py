@@ -363,9 +363,7 @@ class FraudEngine:
         lookback = timedelta(hours=2)
 
         recent_sql = text("""
-            SELECT ST_X(location::geometry) as lng,
-                   ST_Y(location::geometry) as lat,
-                   started_at
+            SELECT lng, lat, started_at
             FROM incidents
             WHERE started_at > :lookback_start
             ORDER BY started_at DESC
