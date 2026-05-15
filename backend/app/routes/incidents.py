@@ -376,4 +376,6 @@ async def get_incident_status(
         triage_transcript=row[8] if row[8] else [],
         started_at=row[9],
         closed_at=row[10],
+        lat=float(row[11]) if row[11] is not None else None,
+        lng=float(row[12]) if row[12] is not None else None,
     )

@@ -118,9 +118,11 @@ export default function ServiceMap({ location, services, height = "300px" }: Pro
 
     // Draw services
     allServices.forEach((svc: any) => {
+      const svcLat = svc.lat ?? svc.location?.lat ?? 0;
+      const svcLng = svc.lng ?? svc.location?.lng ?? 0;
       const proj = projectPoint(
-        svc.location ? svc.location.lat : 0,
-        svc.location ? svc.location.lng : 0,
+        svcLat,
+        svcLng,
         location.lat,
         location.lng,
         w,

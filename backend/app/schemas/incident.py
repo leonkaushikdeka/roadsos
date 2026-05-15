@@ -69,3 +69,5 @@ class IncidentStatusResponse(BaseModel):
     triage_transcript: list[dict] = []
     started_at: datetime
     closed_at: Optional[datetime] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None

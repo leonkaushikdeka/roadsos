@@ -27,7 +27,9 @@ export default function DispatchPage() {
       try {
         const status = await roadsosApi.getIncidentStatus(incidentId);
         setSeverity(status.severity ?? null);
-        setLocation(null); // We'll get from services
+        if (status.lat && status.lng) {
+          setLocation({ lat: status.lat, lng: status.lng });
+        }
 
         if (status.dispatch_options) {
           setDispatchData(status.dispatch_options);
@@ -37,16 +39,17 @@ export default function DispatchPage() {
           setEta(status.ambulance_eta_min);
         }
 
-        // If dispatch not complete, trigger dispatch
-        if (!status.dispatched_services?.length) {
-          await roadsosApi.confirmDispatch(
-            incidentId,
-            status.dispatch_options?.ambulances?.[0]?.id || ""
-          );
-          // Re-fetch
-          const updated = await roadsosApi.getIncidentStatus(incidentId);
-          setDispatchData(updated.dispatch_options || null);
-          setEta(updated.ambulance_eta_min || null);
+        // If dispatch not complete and ambulance available, trigger dispatch
+        const firstAmbulance = status.dispatch_options?.ambulances?.[0]?.id;
+        if (!status.dispatched_services?.length && firstAmbulance) {
+          try {
+            await roadsosApi.confirmDispatch(incidentId, firstAmbulance);
+            const updated = await roadsosApi.getIncidentStatus(incidentId);
+            setDispatchData(updated.dispatch_options || null);
+            setEta(updated.ambulance_eta_min || null);
+          } catch {
+            // Dispatch confirmation failed — still show available services
+          }
         }
       } catch (err: any) {
         setError("Could not load dispatch status");
@@ -111,9 +114,9 @@ export default function DispatchPage() {
         </div>
       )}
 
-      {!location && (
+      {!location && !loading && (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-sm text-white/40">Map loading in 3…</p>
+          <p className="text-sm text-white/40">Location data unavailable for map</p>
         </div>
       )}
 

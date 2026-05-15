@@ -179,6 +179,8 @@ export const roadsosApi = {
       triage_transcript: any[];
       started_at: string;
       closed_at?: string;
+      lat?: number;
+      lng?: number;
     }>(`/v1/incident/${incidentId}`),
 
   /** Search nearby emergency services */
