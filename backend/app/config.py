@@ -8,6 +8,16 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://roadsos:roadsos@localhost:5432/roadsos"
     database_url_sync: str = "postgresql://roadsos:roadsos@localhost:5432/roadsos"
+
+    @property
+    def async_database_url(self) -> str:
+        """Ensure the URL uses asyncpg driver (Railway provides postgresql://)."""
+        url = self.database_url
+        if url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        return url
     redis_url: str = "redis://localhost:6379/0"
     celery_broker_url: str = "redis://localhost:6379/1"
 

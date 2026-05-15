@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
 )
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import text
 from contextlib import asynccontextmanager
 from app.config import settings
 import asyncio
@@ -19,7 +20,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 engine = create_async_engine(
-    settings.database_url,
+    settings.async_database_url,
     echo=settings.debug,
     pool_size=10,
     max_overflow=20,
@@ -71,8 +72,17 @@ async def lifespan():
 
 
 async def init_db():
-    """Create tables if they don't exist."""
+    """Create PostGIS extension and tables if they don't exist."""
     async with engine.begin() as conn:
+        # Enable PostGIS if available (required for Geography columns)
+        try:
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
+        except Exception as e:
+            logger.warning(f"PostGIS extension not available: {e}")
+        try:
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        except Exception as e:
+            logger.warning(f"pgvector extension not available: {e}")
         from app.models import all_models  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
 
