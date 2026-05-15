@@ -24,3 +24,5 @@ frontend/.env.local
 frontend/.env.production.local
 frontend/bash.exe.stackdump
 tsconfig.tsbuildinfo
+~$*
+submission/roadsos-submission.zip
