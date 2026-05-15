@@ -269,7 +269,7 @@ class TriageAgent:
         events = self.graph.stream(initial, self.config)
         for event in events:
             for node_name, node_state in event.items():
-                if node_state.get("question"):
+                if node_state and isinstance(node_state, dict) and node_state.get("question"):
                     self.state = node_state.get("current_step", "INIT")
                     return node_state["question"]
         return "Are you the victim, or are you helping someone else?"
@@ -301,6 +301,8 @@ class TriageAgent:
 
         for event in events:
             for node_name, node_state in event.items():
+                if not node_state or not isinstance(node_state, dict):
+                    continue
                 if node_state.get("question"):
                     result["next_question"] = node_state["question"]
                 if node_state.get("instruction"):
