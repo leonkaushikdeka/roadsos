@@ -74,6 +74,7 @@ async def start_triage(incident_id: str, db: AsyncSession = Depends(get_db)):
     return {
         "incident_id": db_id,
         "session_id": session_id or f"SOS-{db_id[:8].upper()}",
+        "triage_state": "INIT",
         "first_question": "Are you the victim, or are you helping someone else?",
         "triage_complete": False,
         "language": language,

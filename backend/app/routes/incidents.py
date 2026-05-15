@@ -314,7 +314,7 @@ async def get_incident_status(
         text("""
             SELECT id, status, severity, victim_count, dispatched_services,
                    notified_contacts, ambulance_eta_min, hospital_eta_min,
-                   triage_transcript, started_at, closed_at
+                   triage_transcript, started_at, closed_at, lat, lng
             FROM incidents WHERE id = :id
         """),
         {"id": incident_id},
@@ -323,12 +323,32 @@ async def get_incident_status(
     if not row:
         raise HTTPException(status_code=404, detail="Incident not found")
 
+    # Compute dispatch_options on the fly if severity is set
+    dispatch_options = None
+    severity_val = row[2]
+    if severity_val and row[11] is not None and row[12] is not None:
+        lat, lng = float(row[11]), float(row[12])
+        hospitals = await find_nearest_services(db, lat, lng, "hospital", limit=10)
+        ambulances = await find_nearest_services(db, lat, lng, "ambulance", limit=10)
+        police = await find_nearest_services(db, lat, lng, "police", radius_km=15, limit=5)
+        towing = await find_nearest_services(db, lat, lng, "towing", radius_km=15, limit=5)
+        puncture_shops = await find_nearest_services(db, lat, lng, "puncture_shop", radius_km=15, limit=5)
+        ranked_hospitals = await rank_hospitals(hospitals)
+        dispatch_options = {
+            "hospitals": ranked_hospitals[:5],
+            "ambulances": ambulances[:5],
+            "police": police[:3],
+            "towing": towing[:3],
+            "puncture_shop": puncture_shops[:3],
+        }
+
     return IncidentStatusResponse(
         incident_id=row[0],
         status=row[1],
-        severity=row[2],
+        severity=severity_val,
         victim_count=row[3],
         dispatched_services=row[4] if row[4] else [],
+        dispatch_options=dispatch_options,
         ambulance_eta_min=row[6],
         hospital_eta_min=row[7],
         triage_transcript=row[8] if row[8] else [],
