@@ -161,6 +161,12 @@ roadsos/
 | Assumptions | [`ASSUMPTIONS.md`](ASSUMPTIONS.md) |
 | Software & Dependencies | [`SOFTWARE.md`](SOFTWARE.md) |
 
+## Acknowledgements
+
+This project was built as part of the **Road Safety Hackathon 2026** organised by the **Centre of Excellence for Road Safety (CoERS), IIT Madras** in collaboration with **BIMSTEC** member nations. We thank the organisers for the opportunity to work on a problem that affects 1.19 million lives every year.
+
+We acknowledge the use of open data from OpenStreetMap, WHO trauma care guidelines, and the GVK EMRI 108 network structure for seed data. Special thanks to the open-source communities behind FastAPI, Next.js, LangGraph, and the broader Python and Node.js ecosystems.
+
 ## License
 
 MIT License. See [LICENSE](LICENSE).
