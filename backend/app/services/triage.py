@@ -191,37 +191,40 @@ def _get_graph():
 
 # ─── Protocol-Enhanced Triage ────────────────────────────────────────────────
 
-def _inject_protocol_context(answers: dict, lang: str = "en") -> str:
+def _build_protocol_query(answers: dict) -> str:
+    """Build a search query from current triage answers."""
+    query_parts = []
+    if answers.get("bleeding"):
+        query_parts.append("bleeding control")
+    if answers.get("breathing") in ("no", "gasping", "shallow"):
+        query_parts.append("CPR airway management")
+    if answers.get("fracture"):
+        query_parts.append("fracture spinal immobilization")
+    if answers.get("conscious") in ("no", "unconscious"):
+        query_parts.append("unconscious patient recovery position")
+    return " ".join(query_parts)
+
+
+async def inject_protocol_context(answers: dict, lang: str = "en", db=None) -> str:
     """
     Retrieve relevant protocol chunks via RAG and format them as context.
-    Injected into the agent's instruction field for each triage step.
+    Requires an async database session. Returns empty string on failure.
     """
     try:
-        # Build a query from the current answers
-        query_parts = []
-        if answers.get("bleeding"):
-            query_parts.append("bleeding control")
-        if answers.get("breathing") in ("no", "gasping", "shallow"):
-            query_parts.append("CPR airway management")
-        if answers.get("fracture"):
-            query_parts.append("fracture spinal immobilization")
-        if answers.get("conscious") in ("no", "unconscious"):
-            query_parts.append("unconscious patient recovery position")
-
-        if not query_parts:
+        query = _build_protocol_query(answers)
+        if not query:
             return ""
 
-        query = " ".join(query_parts)
-        chunks = search_protocols(query, lang=lang, top_k=2)
+        chunks = await search_protocols(query, lang=lang, top_k=2, db=db)
 
         if chunks:
-            context_lines = ["⚕️ PROTOCOL GUIDANCE:"]
+            context_lines = ["PROTOCOL GUIDANCE:"]
             for chunk in chunks:
-                context_lines.append(f"  • {chunk['chunk_text'][:200]}")
+                context_lines.append(f"  - {chunk['chunk_text'][:200]}")
             return "\n".join(context_lines)
-    except Exception:
-        # RAG failure should not break triage
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Protocol RAG failed: {e}")
     return ""
 
 
@@ -311,11 +314,8 @@ class TriageAgent:
                 if node_state.get("current_step"):
                     self.state = node_state["current_step"]
 
-        # Inject RAG protocol context into instruction
-        if result.get("instruction") and self._lang:
-            protocol_ctx = _inject_protocol_context(self.answers, lang=self._lang)
-            if protocol_ctx:
-                result["instruction"] = f"{result['instruction']}\n\n{protocol_ctx}"
+        # Note: Protocol RAG injection happens at the route layer (async)
+        # where a database session is available. See incidents.py.
 
         # Track transcript
         self.questions_asked += 1

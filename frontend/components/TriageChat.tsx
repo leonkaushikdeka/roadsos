@@ -32,23 +32,17 @@ export default function TriageChat({ incidentId, language, onComplete, onError }
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch first question — uses incident ID so server knows this is existing
+  // Fetch first question using existing incident (already created on splash page)
   useEffect(() => {
     const init = async () => {
       try {
-        const resp = await roadsosApi.initiateIncident({
-          lat: 0, lng: 0,
-          channel: "pwa",
-          location_accuracy_m: 0,
-          language: language || "en",
-        });
-        // The incident was already created on splash page — we reuse the
-        // first question from the response (or fall back to default)
+        const resp = await roadsosApi.startTriage(incidentId);
         const q = resp.first_question || "Are you the victim, or are you helping someone else?";
         setMessages([{ text: q, sender: "bot" }]);
       } catch {
+        // If startTriage endpoint doesn't exist, fall back to default question
         setMessages([
-          { text: "Connection error. Please check your network.", sender: "bot" },
+          { text: "Are you the victim, or are you helping someone else?", sender: "bot" },
         ]);
       }
     };

@@ -63,6 +63,7 @@ class IncidentStatusResponse(BaseModel):
     severity: Optional[str] = None
     victim_count: Optional[int] = None
     dispatched_services: list[dict] = []
+    dispatch_options: Optional[dict] = None
     ambulance_eta_min: Optional[int] = None
     hospital_eta_min: Optional[int] = None
     triage_transcript: list[dict] = []

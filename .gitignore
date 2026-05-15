@@ -22,3 +22,5 @@ seed_last_lines.txt
 package-lock.json
 frontend/.env.local
 frontend/.env.production.local
+frontend/bash.exe.stackdump
+tsconfig.tsbuildinfo

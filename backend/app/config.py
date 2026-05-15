@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     whatsapp_api_token: Optional[str] = None
     whatsapp_phone_number_id: Optional[str] = None
+    whatsapp_verify_token: str = "roadsos_verify_2026"
 
     opencage_api_key: Optional[str] = None
     mapbox_token: Optional[str] = None

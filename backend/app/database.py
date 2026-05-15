@@ -70,5 +70,12 @@ async def lifespan():
     await engine.dispose()
 
 
+async def init_db():
+    """Create tables if they don't exist."""
+    async with engine.begin() as conn:
+        from app.models import all_models  # noqa: F401
+        await conn.run_sync(Base.metadata.create_all)
+
+
 async def close_db():
     await engine.dispose()

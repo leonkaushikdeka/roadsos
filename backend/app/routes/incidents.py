@@ -20,7 +20,7 @@ from app.schemas.incident import (
     DispatchRequest, DispatchResponse,
     IncidentStatusResponse,
 )
-from app.services.triage import TriageAgent
+from app.services.triage import TriageAgent, inject_protocol_context
 from app.services.dispatch import find_nearest_services, dispatch_ambulance, rank_hospitals
 from app.services.notification import notification_service
 from app.services.fraud import FraudEngine, FraudCheckResult
@@ -143,6 +143,12 @@ async def process_triage(
 
     agent = TriageAgent()
     response = agent.process_answer(req.answer)
+
+    # Inject protocol RAG context into instruction if available
+    if response.get("instruction"):
+        protocol_ctx = await inject_protocol_context(agent.answers, lang=incident[3] or "en", db=db)
+        if protocol_ctx:
+            response["instruction"] = f"{response['instruction']}\n\n{protocol_ctx}"
 
     transcript_entry = {
         "question": req.answer,

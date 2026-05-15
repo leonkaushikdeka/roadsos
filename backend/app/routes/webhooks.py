@@ -94,16 +94,62 @@ async def whatsapp_webhook(req: Request):
 
         msg = messages[0]
         from_number = msg.get("from", "")
-        text_body = msg.get("text", {}).get("body", "").lower().strip()
+        msg_type = msg.get("type", "text")
+
+        # Extract text from message (handle text, interactive, and location types)
+        text_body = ""
+        location_data = None
+        if msg_type == "text":
+            text_body = msg.get("text", {}).get("body", "").lower().strip()
+        elif msg_type == "interactive":
+            text_body = (
+                msg.get("interactive", {}).get("button_reply", {}).get("title", "")
+                or msg.get("interactive", {}).get("list_reply", {}).get("title", "")
+            ).lower().strip()
+        elif msg_type == "location":
+            location_data = msg.get("location", {})
+            text_body = "location_shared"
 
         session_key = f"wa:{from_number}"
         session = await get_session_state(session_key)
+
+        # If user shared their location, store it in session
+        if location_data:
+            session["lat"] = location_data.get("latitude")
+            session["lng"] = location_data.get("longitude")
+            session["location_name"] = location_data.get("name", "")
+
+        # Handle initial SOS trigger keywords
+        if text_body in ("sos", "help", "accident", "emergency", "hi", "hello") and session.get("agent_state") == "INIT":
+            session["agent_state"] = "INIT"
+            session["answers"] = {}
+            session["questions_asked"] = 0
+            session["triage_complete"] = False
+            session["severity"] = None
 
         # Initialize agent with persisted state or create fresh
         agent = LegacyTriageAgent()
         agent.state = session.get("agent_state", "INIT")
         agent.answers = session.get("answers", {})
         agent.questions_asked = session.get("questions_asked", 0)
+
+        # If this is the very first message, get the first question instead
+        if agent.state == "INIT" and agent.questions_asked == 0:
+            first_q = agent.get_first_question()
+            session["agent_state"] = agent.state
+            await save_session_state(session_key, session)
+
+            intro = (
+                "RoadSoS Emergency AI Assistant.\n"
+                "I will ask you a few quick questions to get help to you faster.\n\n"
+                f"{first_q}\n\n"
+                "Please also share your location using WhatsApp's location feature (paperclip > Location)."
+            )
+            if not settings.use_mock_dispatch:
+                await notification_service.send_whatsapp(from_number, intro)
+            else:
+                logger.info(f"[MOCK] WhatsApp reply to {from_number}: {intro}")
+            return {"status": "ok"}
 
         response = agent.process_answer(text_body)
 
@@ -225,8 +271,8 @@ async def twilio_voice_webhook(req: Request):
 
 @router.get("/whatsapp")
 async def whatsapp_verify(req: Request):
-    verify_token = req.query.get("hub.verify_token")
-    challenge = req.query.get("hub.challenge")
-    if verify_token == "roadsos_verify_2026":
+    verify_token = req.query_params.get("hub.verify_token")
+    challenge = req.query_params.get("hub.challenge")
+    if verify_token == settings.whatsapp_verify_token:
         return int(challenge)
     raise HTTPException(status_code=403, detail="Verification failed")

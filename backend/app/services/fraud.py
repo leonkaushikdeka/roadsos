@@ -214,7 +214,7 @@ class FraudEngine:
         tracker.incident_count += 1
         tracker.last_incident_at = now
         tracker.updated_at = now
-        await db.flush()
+        await self.db.flush()
 
         # Save fingerprint
         fingerprint_hash = hashlib.sha256(
@@ -244,7 +244,7 @@ class FraudEngine:
             )
             self.db.add(alert)
 
-        await db.commit()
+        await self.db.commit()
 
         # Log every check
         logger.info(
@@ -403,14 +403,21 @@ class FraudEngine:
         self, phone=None, device_fingerprint=None, ip_address=None
     ) -> AbuseTracker:
         """Find existing tracker or create new one."""
-        query = self.db.query(AbuseTracker)
+        from sqlalchemy import select as sa_select
 
+        stmt = sa_select(AbuseTracker)
         if phone:
-            query = query.filter(AbuseTracker.phone == phone)
+            stmt = stmt.where(AbuseTracker.phone == phone)
         elif device_fingerprint:
-            query = query.filter(AbuseTracker.device_fingerprint == device_fingerprint)
+            stmt = stmt.where(AbuseTracker.device_fingerprint == device_fingerprint)
+        else:
+            # No identifiers — can't look up, create fresh
+            tracker = AbuseTracker(phone=phone, device_fingerprint=device_fingerprint, ip_address=ip_address)
+            self.db.add(tracker)
+            return tracker
 
-        existing = (await self.db.execute(query)).scalar_one_or_none()
+        result = await self.db.execute(stmt)
+        existing = result.scalar_one_or_none()
         if existing:
             return existing
 
