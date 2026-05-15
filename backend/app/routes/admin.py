@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -5,7 +6,20 @@ from sqlalchemy import text
 
 from app.database import get_db
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/admin", tags=["Admin"])
+
+
+@router.post("/seed")
+async def seed_database_endpoint():
+    """Seed emergency services and protocol data into the database."""
+    try:
+        from app.seed.run import seed_database
+        await seed_database()
+        return {"status": "ok", "message": "Database seeded successfully"}
+    except Exception as e:
+        logger.error(f"Seed failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/heatmap")

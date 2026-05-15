@@ -244,11 +244,6 @@ class TriageAgent:
     def __init__(self, max_questions: int = 5, use_llm: bool = False):
         self.max_questions = max_questions
         self.use_llm = use_llm
-        self.graph = _get_graph()
-        self.thread_id = f"session-{id(self)}"
-        self.config = {"configurable": {"thread_id": self.thread_id}}
-
-        # Current state snapshot
         self.state = "INIT"
         self.answers: dict = {}
         self.questions_asked = 0
@@ -256,75 +251,67 @@ class TriageAgent:
         self._lang = "en"
 
     def get_first_question(self) -> str:
-        """Reset and return the first triage question."""
-        from agent.triage.agent import TriageState
-        initial = TriageState(
-            current_step="INIT",
-            transcript=[],
-            num_questions=0,
-            instruction="",
-            triage_complete=False,
-            max_questions=self.max_questions,
-        )
-        events = self.graph.stream(initial, self.config)
-        for event in events:
-            for node_name, node_state in event.items():
-                if node_state and isinstance(node_state, dict) and node_state.get("question"):
-                    self.state = node_state.get("current_step", "INIT")
-                    return node_state["question"]
-        return "Are you the victim, or are you helping someone else?"
+        """Return the first triage question from the FSM."""
+        self.state = "INIT"
+        flow_entry = TRIAGE_FLOW.get("INIT", {})
+        return flow_entry.get("question", "Are you the victim, or are you helping someone else?")
 
     def process_answer(self, answer: str) -> dict:
         """
-        Process a user answer through the LangGraph agent.
+        Process a user answer through the deterministic FSM.
         Returns the next question, instruction, severity, etc.
         """
-        # Feed the answer into the graph
-        input_state = {"current_step": self.state}
-
-        # Map answer to the appropriate field based on current step
         step = self.state
         flow_entry = TRIAGE_FLOW.get(step, {})
         field = flow_entry.get("field", "")
-        if field:
-            input_state[field] = answer.lower().strip()
+        answer_lower = answer.lower().strip()
 
-        events = self.graph.stream(input_state, self.config)
+        # Record the answer
+        if field:
+            self.answers[field] = answer_lower
+
+        # Determine next step via FSM transitions
+        next_map = flow_entry.get("next", {})
+        next_step = None
+        for keyword, target in next_map.items():
+            if _match(answer_lower, [keyword]):
+                next_step = target
+                break
+        if next_step is None:
+            # Default: pick first transition target
+            next_step = list(next_map.values())[0] if next_map else "FINAL_SEVERITY"
+
+        # Enforce max questions
+        self.questions_asked += 1
+        if self.questions_asked >= self.max_questions and next_step != "FINAL_SEVERITY":
+            next_step = "FINAL_SEVERITY"
+
+        self.state = next_step
 
         result: dict = {
             "next_question": None,
-            "instruction": None,
+            "instruction": flow_entry.get("instruction"),
             "severity": None,
             "severity_confidence": None,
             "triage_complete": False,
         }
 
-        for event in events:
-            for node_name, node_state in event.items():
-                if not node_state or not isinstance(node_state, dict):
-                    continue
-                if node_state.get("question"):
-                    result["next_question"] = node_state["question"]
-                if node_state.get("instruction"):
-                    result["instruction"] = node_state["instruction"]
-                if node_state.get("triage_complete"):
-                    result["triage_complete"] = True
-                if node_state.get("severity"):
-                    result["severity"] = node_state["severity"]
-                if node_state.get("severity_confidence"):
-                    result["severity_confidence"] = node_state["severity_confidence"]
-                if node_state.get("current_step"):
-                    self.state = node_state["current_step"]
-
-        # Note: Protocol RAG injection happens at the route layer (async)
-        # where a database session is available. See incidents.py.
+        if next_step == "FINAL_SEVERITY":
+            severity, confidence = classify_severity(self.answers)
+            result["severity"] = severity
+            result["severity_confidence"] = confidence
+            result["triage_complete"] = True
+        else:
+            next_flow = TRIAGE_FLOW.get(next_step, {})
+            result["next_question"] = next_flow.get("question", "Help is on the way.")
+            if next_flow.get("instruction"):
+                result["instruction"] = next_flow["instruction"]
 
         # Track transcript
-        self.questions_asked += 1
         self.transcript.append({
-            "step": self.state,
+            "step": step,
             "question": flow_entry.get("question", ""),
-            "answer": answer.lower().strip(),
+            "answer": answer_lower,
         })
         if result.get("severity"):
             self.transcript[-1]["severity"] = result["severity"]

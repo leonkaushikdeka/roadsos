@@ -167,6 +167,13 @@ async def seed_database():
     await init_db()
 
     async with async_session() as session:
+        # Check if already seeded
+        count_result = await session.execute(text("SELECT COUNT(*) FROM emergency_services"))
+        count = count_result.scalar()
+        if count and count > 0:
+            logger.info(f"Database already has {count} services, skipping seed")
+            return
+
         for svc in TN_HOSPITALS + TN_AMBULANCES + TN_POLICE + TN_BLOOD_BANKS:
             await session.execute(
                 text("""
@@ -177,8 +184,7 @@ async def seed_database():
                     VALUES
                         (:name, :type, :grade, :lat, :lng, :address, :phone,
                          :icu, :vent, :blood, :trauma,
-                         :capacity, true)
-                    ON CONFLICT (id) DO NOTHING
+                         CAST(:capacity AS json), true)
                 """),
                 {
                     "name": svc["name"],
@@ -192,7 +198,7 @@ async def seed_database():
                     "vent": svc.get("vent", False),
                     "blood": svc.get("blood", False),
                     "trauma": svc.get("trauma", False),
-                    "capacity": json.dumps({"beds_total": svc.get("beds", 0)}),
+                    "capacity": json.dumps({"beds_total": svc.get("beds", 0)}),  # JSON string
                 },
             )
 
