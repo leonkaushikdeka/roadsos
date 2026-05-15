@@ -21,7 +21,7 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from sqlalchemy import text, func
+from sqlalchemy import text, func, select as sa_select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -277,7 +277,8 @@ class FraudEngine:
             keys.append(f"ip:{ip_address}")
 
         for key in keys:
-            bucket = await self.db.get(RateLimitBucket, key)  # type: ignore
+            stmt = sa_select(RateLimitBucket).where(RateLimitBucket.bucket_key == key)
+            bucket = (await self.db.execute(stmt)).scalar_one_or_none()
             if not bucket:
                 bucket = RateLimitBucket(
                     bucket_key=key,
@@ -401,8 +402,6 @@ class FraudEngine:
         self, phone=None, device_fingerprint=None, ip_address=None
     ) -> AbuseTracker:
         """Find existing tracker or create new one."""
-        from sqlalchemy import select as sa_select
-
         stmt = sa_select(AbuseTracker)
         if phone:
             stmt = stmt.where(AbuseTracker.phone == phone)
