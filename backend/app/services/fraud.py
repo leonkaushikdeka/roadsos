@@ -222,7 +222,7 @@ class FraudEngine:
         ).hexdigest()
 
         fp = IncidentFingerprint(
-            incident_id="",
+            incident_id=None,
             fingerprint_hash=fingerprint_hash,
             location_grid=encode_geohash(lat, lng),
             caller_phone=tracker.phone,
