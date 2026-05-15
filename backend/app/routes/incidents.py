@@ -141,7 +141,27 @@ async def process_triage(
             detail="This incident is under fraud review.",
         )
 
+    from app.services.triage import TRIAGE_FLOW
+
     agent = TriageAgent()
+
+    # Restore agent state from existing transcript
+    transcript = incident[1]
+    if transcript and isinstance(transcript, list) and len(transcript) > 0:
+        last_entry = transcript[-1]
+        agent.state = last_entry.get("step", "INIT")
+        agent.questions_asked = len(transcript)
+        # Restore answers dict from transcript entries
+        for entry in transcript:
+            step_before = entry.get("step_before", "")
+            answer_text = entry.get("answer", "")
+            if step_before and answer_text:
+                flow_entry = TRIAGE_FLOW.get(step_before, {})
+                field = flow_entry.get("field", "")
+                if field:
+                    agent.answers[field] = answer_text
+
+    step_before = agent.state  # Capture state before processing
     response = agent.process_answer(req.answer)
 
     # Inject protocol RAG context into instruction if available
@@ -152,6 +172,8 @@ async def process_triage(
 
     transcript_entry = {
         "question": req.answer,
+        "answer": req.answer.lower().strip(),
+        "step_before": step_before,
         "step": agent.state,
         "timestamp": datetime.utcnow().isoformat(),
     }
