@@ -147,13 +147,17 @@ SEVERITY_MAP = {
 _NEGATIONS = ("no", "not", "none", "don't", "doesn't", "isn't", "can't", "cannot", "without")
 
 
+def _first_word(answer: str) -> str:
+    """Extract first word, stripped of punctuation."""
+    word = answer.split()[0] if answer.split() else ""
+    return word.rstrip(",.!?;:")
+
+
 def _is_positive(answer: str, pos_keywords: tuple[str, ...]) -> bool:
     """Check if answer positively affirms any keyword (not negated)."""
     if not answer:
         return False
-    # If answer starts with a negation word, treat as negative
-    first_word = answer.split()[0] if answer.split() else ""
-    negated = first_word in _NEGATIONS
+    negated = _first_word(answer) in _NEGATIONS
     has_keyword = any(k in answer for k in pos_keywords)
     return has_keyword and not negated
 
@@ -162,8 +166,7 @@ def _is_negative(answer: str) -> bool:
     """Check if answer is a negative response."""
     if not answer:
         return True
-    first_word = answer.split()[0] if answer.split() else ""
-    return first_word in _NEGATIONS
+    return _first_word(answer) in _NEGATIONS
 
 
 def classify_severity(answers: dict) -> tuple[str, float]:

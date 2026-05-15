@@ -203,6 +203,31 @@ class TestClassifySeverity:
         assert sev == "GREEN"
 
 
+    def test_green_multi_word_negation(self):
+        """'no bleeding' and 'no broken bones' should classify as GREEN."""
+        sev, conf = classify_severity({
+            "bleeding": "no bleeding",
+            "fracture": "no broken bones",
+            "conscious": "yes conscious",
+        })
+        assert sev == "GREEN"
+
+    def test_yellow_multi_word_positive(self):
+        """'yes heavy bleeding' with conscious → YELLOW bleeding_conscious."""
+        sev, conf = classify_severity({
+            "bleeding": "yes heavy bleeding",
+            "conscious": "yes awake",
+        })
+        assert sev == "YELLOW"
+        assert conf >= 0.7
+
+    def test_red_multi_word_not_breathing(self):
+        """'no not breathing' → RED."""
+        sev, conf = classify_severity({"breathing": "no not breathing"})
+        assert sev == "RED"
+        assert conf > 0.9
+
+
 class TestMatchFunction:
     def test_exact_match(self):
         assert _match("yes", ["yes"]) is True
