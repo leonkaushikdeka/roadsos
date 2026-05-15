@@ -125,9 +125,7 @@ roadsos/
 ├── infra/                  # Docker Compose, k8s manifests
 ├── seed_data/              # Seed CSVs and SQL
 ├── submission/             # Hackathon deliverables
-│   ├── RoadSoS_Presentation.pptx
 │   ├── RoadSoS_Solution_Document.docx
-│   ├── slides_final.pdf
 │   └── demo.mp4
 ├── ASSUMPTIONS.md          # Design assumptions and limitations
 ├── SOFTWARE.md             # Dependencies and setup guide
@@ -157,7 +155,7 @@ roadsos/
 
 | Deliverable | File |
 |-------------|------|
-| 7-Slide Presentation | [`submission/RoadSoS_Presentation.pptx`](submission/RoadSoS_Presentation.pptx) / [`slides_final.pdf`](slides_final.pdf) |
+| 7-Slide Presentation | [`slides_final.pdf`](slides_final.pdf) |
 | Solution Document | [`submission/RoadSoS_Solution_Document.docx`](submission/RoadSoS_Solution_Document.docx) |
 | Demo Video | [`submission/demo.mp4`](submission/demo.mp4) |
 | Assumptions | [`ASSUMPTIONS.md`](ASSUMPTIONS.md) |
