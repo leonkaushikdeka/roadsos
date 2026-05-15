@@ -144,9 +144,26 @@ SEVERITY_MAP = {
 }
 
 
-def _has(answer: str, keywords: tuple[str, ...]) -> bool:
-    """Check if any keyword appears as a substring of the answer."""
-    return any(k in answer for k in keywords)
+_NEGATIONS = ("no", "not", "none", "don't", "doesn't", "isn't", "can't", "cannot", "without")
+
+
+def _is_positive(answer: str, pos_keywords: tuple[str, ...]) -> bool:
+    """Check if answer positively affirms any keyword (not negated)."""
+    if not answer:
+        return False
+    # If answer starts with a negation word, treat as negative
+    first_word = answer.split()[0] if answer.split() else ""
+    negated = first_word in _NEGATIONS
+    has_keyword = any(k in answer for k in pos_keywords)
+    return has_keyword and not negated
+
+
+def _is_negative(answer: str) -> bool:
+    """Check if answer is a negative response."""
+    if not answer:
+        return True
+    first_word = answer.split()[0] if answer.split() else ""
+    return first_word in _NEGATIONS
 
 
 def classify_severity(answers: dict) -> tuple[str, float]:
@@ -158,23 +175,23 @@ def classify_severity(answers: dict) -> tuple[str, float]:
     cpr = answers.get("cpr_started", "").lower()
 
     # RED: life-threatening
-    if _has(breathing, ("no", "not", "gasping")) or _has(cpr, ("yes", "started")):
+    if (breathing and _is_negative(breathing)) or _is_positive(breathing, ("gasping",)) or _is_positive(cpr, ("yes", "started")):
         return SEVERITY_MAP["not_breathing"]
-    if _has(conscious, ("no", "unconscious", "not")) and _has(bleeding, ("yes", "heavy", "bleeding", "blood")):
+    if conscious and _is_negative(conscious) and _is_positive(bleeding, ("yes", "heavy", "bleeding", "blood")):
         return SEVERITY_MAP["unconscious_bleeding"]
-    if _has(conscious, ("no", "unconscious", "not")):
+    if conscious and _is_negative(conscious):
         return SEVERITY_MAP["unconscious"]
 
     # YELLOW: moderate
-    if _has(bleeding, ("yes", "heavy", "bleeding", "blood")) and _has(conscious, ("yes", "awake", "responding", "conscious")):
+    if _is_positive(bleeding, ("yes", "heavy", "bleeding", "blood")) and _is_positive(conscious, ("yes", "awake", "responding", "conscious")):
         return SEVERITY_MAP["bleeding_conscious"]
-    if _has(bleeding, ("yes", "heavy", "bleeding", "blood")):
+    if _is_positive(bleeding, ("yes", "heavy", "bleeding", "blood")):
         return SEVERITY_MAP["heavy_bleeding"]
-    if _has(fracture, ("yes", "broken", "maybe")):
+    if _is_positive(fracture, ("yes", "broken", "maybe")):
         return SEVERITY_MAP["fracture_conscious"]
 
     # GREEN: stable
-    if not _has(bleeding, ("yes", "heavy", "bleeding", "blood")) and not _has(fracture, ("yes", "broken", "maybe")) and _has(conscious, ("yes", "awake", "responding", "conscious")):
+    if _is_negative(bleeding) and _is_negative(fracture) and _is_positive(conscious, ("yes", "awake", "responding", "conscious")):
         return SEVERITY_MAP["minor"]
 
     return SEVERITY_MAP["default"]

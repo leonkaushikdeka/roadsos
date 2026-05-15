@@ -13,7 +13,7 @@ Prerequisites: Docker Desktop, Git
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/roadsos.git
+git clone https://github.com/leonkaushikdeka/roadsos.git
 cd roadsos
 
 # Copy the environment template and edit (only needed for WhatsApp/Twilio)
@@ -94,6 +94,15 @@ roadsos/
 ├── infra/              # Docker Compose, k8s
 └── seed_data/          # CSV + SQL dumps
 ```
+
+## Live Demo
+
+| Surface | URL |
+|---------|-----|
+| PWA | https://frontend-ten-gamma-78.vercel.app |
+| Backend API | https://rare-adventure-production-984a.up.railway.app |
+| API Docs | https://rare-adventure-production-984a.up.railway.app/docs |
+| Health Check | https://rare-adventure-production-984a.up.railway.app/health |
 
 ## Submission
 

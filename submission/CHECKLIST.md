@@ -15,7 +15,7 @@
 ## Run Locally in 5 Minutes
 
 ```bash
-git clone https://github.com/your-org/roadsos.git && cd roadsos
+git clone https://github.com/leonkaushikdeka/roadsos.git && cd roadsos
 
 # Ensure Docker Desktop is running, then:
 cp .env.example .env          # Edit only if enabling real Twilio/WhatsApp
