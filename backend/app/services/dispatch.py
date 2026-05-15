@@ -150,10 +150,20 @@ async def dispatch_ambulance(
         "dispatched_at": datetime.utcnow().isoformat(),
     }
 
+    # Read existing dispatched_services, append, write back (JSON type)
+    ds_result = await db.execute(
+        text("SELECT dispatched_services FROM incidents WHERE id = :id"),
+        {"id": incident_id},
+    )
+    ds_row = ds_result.fetchone()
+    existing = ds_row[0] if ds_row and ds_row[0] else []
+    existing.append(dispatch_info)
+
+    import json as _json
     sql = text("""
         UPDATE incidents
         SET status = 'ambulance_dispatched',
-            dispatched_services = COALESCE(dispatched_services, CAST('[]' AS jsonb)) || CAST(:dispatch_info AS jsonb),
+            dispatched_services = CAST(:ds AS json),
             ambulance_eta_min = :eta
         WHERE id = :incident_id
         RETURNING id, ambulance_eta_min
@@ -161,7 +171,7 @@ async def dispatch_ambulance(
 
     result = await db.execute(sql, {
         "incident_id": incident_id,
-        "dispatch_info": str(dispatch_info).replace("'", '"'),
+        "ds": _json.dumps(existing),
         "eta": eta_min,
     })
     await db.commit()

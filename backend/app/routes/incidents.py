@@ -160,13 +160,17 @@ async def process_triage(
     if response.get("instruction"):
         transcript_entry["instruction"] = response["instruction"]
 
+    # Read existing transcript, append, write back (JSON type doesn't support || concat)
+    tx_result = await db.execute(
+        text("SELECT triage_transcript FROM incidents WHERE id = :id"),
+        {"id": incident_id},
+    )
+    tx_row = tx_result.fetchone()
+    existing = tx_row[0] if tx_row and tx_row[0] else []
+    existing.append(transcript_entry)
     await db.execute(
-        text("""
-            UPDATE incidents SET
-                triage_transcript = COALESCE(triage_transcript, CAST('[]' AS jsonb)) || CAST(:entry AS jsonb)
-            WHERE id = :id
-        """),
-        {"id": incident_id, "entry": json.dumps(transcript_entry)},
+        text("UPDATE incidents SET triage_transcript = CAST(:tx AS json) WHERE id = :id"),
+        {"id": incident_id, "tx": json.dumps(existing)},
     )
     await db.commit()
 
