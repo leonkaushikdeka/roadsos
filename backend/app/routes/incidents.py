@@ -163,7 +163,7 @@ async def process_triage(
     await db.execute(
         text("""
             UPDATE incidents SET
-                triage_transcript = COALESCE(triage_transcript, '[]'::jsonb) || :entry::jsonb
+                triage_transcript = COALESCE(triage_transcript, CAST('[]' AS jsonb)) || CAST(:entry AS jsonb)
             WHERE id = :id
         """),
         {"id": incident_id, "entry": json.dumps(transcript_entry)},

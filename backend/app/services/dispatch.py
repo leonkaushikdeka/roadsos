@@ -153,7 +153,7 @@ async def dispatch_ambulance(
     sql = text("""
         UPDATE incidents
         SET status = 'ambulance_dispatched',
-            dispatched_services = COALESCE(dispatched_services, '[]'::jsonb) || :dispatch_info::jsonb,
+            dispatched_services = COALESCE(dispatched_services, CAST('[]' AS jsonb)) || CAST(:dispatch_info AS jsonb),
             ambulance_eta_min = :eta
         WHERE id = :incident_id
         RETURNING id, ambulance_eta_min
