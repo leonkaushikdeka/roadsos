@@ -89,11 +89,13 @@ async def lifespan(app: FastAPI):
     try:
         await init_db()
         logger.info("✅ Database ready")
-        # Auto-seed on first startup
+    except Exception as e:
+        logger.error(f"Database init failed: {e}")
+    try:
         from app.seed.run import seed_database
         await seed_database()
     except Exception as e:
-        logger.error(f"Database init/seed failed: {e}")
+        logger.warning(f"Seed failed (non-fatal): {e}")
     yield
     await close_db()
     logger.info("🛑 RoadSoS API shut down")
