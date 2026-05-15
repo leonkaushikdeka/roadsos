@@ -19,7 +19,7 @@ Design principles:
 import hashlib
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Optional
 from sqlalchemy import text, func, select as sa_select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -124,7 +124,7 @@ class FraudEngine:
     ) -> FraudCheckResult:
         """Run all fraud checks and return a combined result."""
         result = FraudCheckResult()
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
 
         # 1. Get or create abuse tracker
         tracker = await self._get_or_create_tracker(
@@ -265,7 +265,7 @@ class FraudEngine:
     ) -> FraudCheckResult:
         """Sliding-window rate limit check."""
         result = FraudCheckResult()
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
         window_start = now - timedelta(seconds=RATE_LIMIT_WINDOW_SEC)
 
         keys = []
@@ -316,7 +316,7 @@ class FraudEngine:
     async def _check_duplicates(self, phone, lat, lng) -> FraudCheckResult:
         """Check for duplicate reports in the same geohash + time window."""
         result = FraudCheckResult()
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
         window_start = now - timedelta(seconds=DUPLICATE_WINDOW_SEC)
         grid = encode_geohash(lat, lng, DUPLICATE_GEOHASH_PREFIX)
 
@@ -360,7 +360,7 @@ class FraudEngine:
         if not phone:
             return result
 
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
         lookback = timedelta(hours=2)
 
         recent_sql = text("""
