@@ -64,7 +64,7 @@ async def close_incident(incident_id: str, db: AsyncSession = Depends(get_db)):
             WHERE id = :id AND status != 'closed'
             RETURNING id, status
         """),
-        {"id": incident_id, "now": datetime.now(timezone.utc)},
+        {"id": incident_id, "now": datetime.utcnow()},
     )
     row = result.fetchone()
     if not row:

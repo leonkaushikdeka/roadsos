@@ -8,7 +8,7 @@ This ensures genuine emergencies always get through.
 import json
 import uuid
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
@@ -71,7 +71,7 @@ async def initiate_incident(
 
     incident_id = str(uuid.uuid4())
     session_id = f"SOS-{incident_id[:8].upper()}"
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
 
     await db.execute(
         text("""
@@ -153,7 +153,7 @@ async def process_triage(
     transcript_entry = {
         "question": req.answer,
         "step": agent.state,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.utcnow().isoformat(),
     }
     if response.get("severity"):
         transcript_entry["severity"] = response["severity"]
